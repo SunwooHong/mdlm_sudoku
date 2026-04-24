@@ -93,12 +93,14 @@ class Diffusion(L.LightningModule):
       self.backbone = models.dit.DIT(
         self.config, vocab_size=self.vocab_size)
     elif self.config.backbone == 'dimamba':
-      self.backbone = models.dimamba.DiMamba(
+      from models import dimamba as dimamba_mod
+      self.backbone = dimamba_mod.DiMamba(
         self.config,
         vocab_size=self.vocab_size,
         pad_token_id=self.tokenizer.pad_token_id)
     elif self.config.backbone == 'ar':
-      self.backbone = models.autoregressive.AR(
+      from models import autoregressive as autoregressive_mod
+      self.backbone = autoregressive_mod.AR(
         self.config,
         vocab_size=self.vocab_size,
         mask_index=self.mask_index)
@@ -124,15 +126,17 @@ class Diffusion(L.LightningModule):
     self.valid_metrics = metrics.clone(prefix='val/')
     self.test_metrics = metrics.clone(prefix='test/')
 
-    # generative perplexity
+    # generative perplexity (optional; Sudoku runs skip GPT-2 tokenizer load)
     self.gen_ppl_metric = Perplexity()
-    self.eval_model_tokenizer = transformers.AutoTokenizer.\
-      from_pretrained(self.gen_ppl_eval_model_name_or_path)
-    if self.eval_model_tokenizer.pad_token is None:
-      self.eval_model_tokenizer.pad_token =\
-          self.eval_model_tokenizer.eos_token
-      self.eval_model_tokenizer.pad_token_id =\
-          self.eval_model_tokenizer.eos_token_id
+    self.eval_model_tokenizer = None
+    if self.config.eval.compute_generative_perplexity:
+      self.eval_model_tokenizer = transformers.AutoTokenizer.from_pretrained(
+        self.gen_ppl_eval_model_name_or_path)
+      if self.eval_model_tokenizer.pad_token is None:
+        self.eval_model_tokenizer.pad_token = (
+          self.eval_model_tokenizer.eos_token)
+        self.eval_model_tokenizer.pad_token_id = (
+          self.eval_model_tokenizer.eos_token_id)
 
     self.noise = noise_schedule.get_noise(self.config,
                                           dtype=self.dtype)
@@ -362,7 +366,11 @@ class Diffusion(L.LightningModule):
       attention_mask = batch['attention_mask']
     else:
       attention_mask = None
-    losses = self._loss(batch['input_ids'], attention_mask)
+    anchor_mask = batch.get('anchor_mask', None)
+    losses = self._loss(
+      batch['input_ids'],
+      attention_mask,
+      anchor_mask=anchor_mask)
     loss = losses.loss
 
     if prefix == 'train':
@@ -481,6 +489,7 @@ class Diffusion(L.LightningModule):
         attn_mask: Attention mask for the eval model
         eval_context_size: Size of the context for the eval model
     """
+    assert self.eval_model_tokenizer is not None
     if 'llama2' in self.gen_ppl_eval_model_name_or_path:
       tokenizer_kwargs = {
         'text_samples': text_samples,
@@ -513,10 +522,10 @@ class Diffusion(L.LightningModule):
 
   @torch.no_grad()
   def compute_generative_perplexity(
-    self,
-    text_samples: typing.List[str],
-    retokenize: bool = True,
-    max_length: typing.Optional[int] = None) -> None:
+      self,
+      text_samples: typing.List[str],
+      retokenize: bool = True,
+      max_length: typing.Optional[int] = None) -> None:
     """Compute the generative perplexity of the model.
 
     Args:
@@ -526,6 +535,7 @@ class Diffusion(L.LightningModule):
         Perplexity of the generated text under a different
         pre-trained AR model (e.g., GPT2).
     """
+    assert self.eval_model_tokenizer is not None
     os.environ['TOKENIZERS_PARALLELISM'] = 'false'
     eval_model = transformers.AutoModelForCausalLM.from_pretrained(
       self.gen_ppl_eval_model_name_or_path).eval()
@@ -572,16 +582,19 @@ class Diffusion(L.LightningModule):
         self.gen_ppl_metric.update(
           nlls, first_eos[..., 1:] + token_mask[..., 1:])
 
-  def q_xt(self, x, move_chance):
+  def q_xt(self, x, move_chance, maskable_mask=None):
     """Computes the noisy sample xt.
 
     Args:
       x: int torch.Tensor with shape (batch_size,
           diffusion_model_input_length), input. 
       move_chance: float torch.Tensor with shape (batch_size, 1).
+      maskable_mask: optional bool [B, L]; True where positions may be masked.
     """
     move_indices = torch.rand(
       * x.shape, device=x.device) < move_chance
+    if maskable_mask is not None:
+      move_indices = move_indices & maskable_mask.bool()
     xt = torch.where(move_indices, self.mask_index, x)
     return xt
 
@@ -807,8 +820,9 @@ class Diffusion(L.LightningModule):
       return self.noise.importance_sampling_transformation(t)
     return t
 
-  def _maybe_sub_sample(self, x0, attention_mask):
+  def _maybe_sub_sample(self, x0, attention_mask, anchor_mask=None):
     seqlen = x0.shape[1]
+    new_anchor_mask = anchor_mask
     if seqlen > self.config.model.length:
       assert seqlen == 2 * self.config.model.length
       # cropping is needed for text8-crop dataset
@@ -818,6 +832,8 @@ class Diffusion(L.LightningModule):
       input_tokens = x0[:, start: end]
       output_tokens = x0[:, start + 1: end + 1]
       new_attention_mask = attention_mask[:, start: end]
+      if anchor_mask is not None:
+        new_anchor_mask = anchor_mask[:, start:end]
 
       # Helps with validation PPL, since the val
       # examples will all start and end with BOS/EOS
@@ -827,11 +843,14 @@ class Diffusion(L.LightningModule):
       input_tokens = x0[:, :-1]
       output_tokens = x0[:, 1:]
       new_attention_mask = attention_mask[:, 1:]
+      if anchor_mask is not None:
+        new_anchor_mask = anchor_mask[:, :-1]
     else:
       input_tokens = x0
       output_tokens = None
       new_attention_mask = attention_mask
-    return input_tokens, output_tokens, new_attention_mask
+      new_anchor_mask = anchor_mask
+    return input_tokens, output_tokens, new_attention_mask, new_anchor_mask
 
   def _reconstruction_loss(self, x0):
     t0 = torch.zeros(x0.shape[0], dtype=self.dtype,
@@ -844,7 +863,7 @@ class Diffusion(L.LightningModule):
                           dim=-1,
                           index=x0[:, :, None]).squeeze(-1)
 
-  def _forward_pass_diffusion(self, x0):
+  def _forward_pass_diffusion(self, x0, anchor_mask=None):
     t = self._sample_t(x0.shape[0], x0.device)
     if self.T > 0:
       t = (t * self.T).to(torch.int)
@@ -863,7 +882,11 @@ class Diffusion(L.LightningModule):
       unet_conditioning = sigma[:, None]
       move_chance = 1 - torch.exp(-sigma[:, None])
 
-    xt = self.q_xt(x0, move_chance)
+    maskable_mask = None
+    if anchor_mask is not None:
+      maskable_mask = ~anchor_mask.bool()
+
+    xt = self.q_xt(x0, move_chance, maskable_mask=maskable_mask)
     model_output = self.forward(xt, unet_conditioning)
     utils.print_nans(model_output, 'model_output')
 
@@ -893,17 +916,18 @@ class Diffusion(L.LightningModule):
     return - log_p_theta * (
       dsigma / torch.expm1(sigma))[:, None]
 
-  def _loss(self, x0, attention_mask):
+  def _loss(self, x0, attention_mask, anchor_mask=None):
     (input_tokens, output_tokens,
-     attention_mask) = self._maybe_sub_sample(
-       x0, attention_mask)
+     attention_mask, anchor_mask) = self._maybe_sub_sample(
+       x0, attention_mask, anchor_mask)
 
     if self.parameterization == 'ar':
       logprobs = self.backbone(input_tokens, None)
       loss = - logprobs.gather(
         -1, output_tokens[:, :, None])[:, :, 0]
     else:
-      loss = self._forward_pass_diffusion(input_tokens)
+      loss = self._forward_pass_diffusion(
+        input_tokens, anchor_mask=anchor_mask)
     
     nlls = loss * attention_mask
     count = attention_mask.sum()

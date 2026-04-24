@@ -18,6 +18,8 @@ import transformers
 
 import utils
 
+import sudoku_dataloader
+
 LOGGER = utils.get_logger(__name__)
 
 
@@ -303,6 +305,16 @@ def _group_texts(examples, block_size, bos, eos):
 def get_dataset(
     dataset_name, tokenizer, wrap, mode, cache_dir,
     block_size=1024, num_proc=len(os.sched_getaffinity(0)), streaming=False):
+  if dataset_name in ['sudoku9-solutions', 'sudoku9-anchors']:
+    if block_size != 81:
+      raise ValueError(
+        f'Sudoku9 requires model.length==81, got block_size={block_size}')
+    use_anchors = dataset_name == 'sudoku9-anchors'
+    return sudoku_dataloader.SudokuNpyDataset(
+      root=cache_dir,
+      split=mode,
+      use_anchors=use_anchors)
+
   if wrap:
     filename = f'{dataset_name}_{mode}_bs{block_size}_wrapped.dat'
   else:
@@ -486,6 +498,9 @@ def get_dataset(
 
 
 def get_tokenizer(config):
+  if config.data.tokenizer_name_or_path == 'sudoku9':
+    return sudoku_dataloader.SudokuTokenizer()
+
   if config.data.tokenizer_name_or_path == 'text8':
     tokenizer = Text8Tokenizer()
   elif config.data.tokenizer_name_or_path == 'bert-base-uncased':

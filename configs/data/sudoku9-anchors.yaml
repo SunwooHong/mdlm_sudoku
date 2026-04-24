@@ -1,0 +1,6 @@
+train: sudoku9-anchors
+valid: sudoku9-anchors
+tokenizer_name_or_path: sudoku9
+cache_dir: ${mdlm_root:}/dataset/sudoku_9m_npy
+wrap: False
+streaming: False

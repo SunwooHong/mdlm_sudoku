@@ -1,14 +1,14 @@
 import math
 import typing
 
-import flash_attn
-import flash_attn.layers.rotary
 import huggingface_hub
 import omegaconf
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
+
+from .flash_attn_lazy import get_flash_attn
 
 # Flags required to enable jit fusion kernels
 torch._C._jit_set_profiling_mode(False)
@@ -117,11 +117,10 @@ def rotate_half(x):
 
 
 def apply_rotary_pos_emb(qkv, cos, sin):
+  _, far = get_flash_attn()
   cos = cos[0, :, 0, 0, : cos.shape[-1] // 2]
   sin = sin[0, :, 0, 0, : sin.shape[-1] // 2]
-  return flash_attn.layers.rotary.apply_rotary_emb_qkv_(
-    qkv, cos, sin
-  )
+  return far.apply_rotary_emb_qkv_(qkv, cos, sin)
 
 
 #################################################################################
@@ -221,7 +220,8 @@ class DDiTBlock(nn.Module):
       )
     else:
       cu_seqlens = seqlens.cumsum(-1)
-    x = flash_attn.flash_attn_interface.flash_attn_varlen_qkvpacked_func(
+    fa, _ = get_flash_attn()
+    x = fa.flash_attn_interface.flash_attn_varlen_qkvpacked_func(
       qkv, cu_seqlens, seq_len, 0.0, causal=self.causal
     )
 

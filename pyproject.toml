@@ -1,0 +1,51 @@
+# UV/pip mirror of requirements.yaml (conda used PyTorch CUDA 12.1).
+#
+# Base environment:
+#   cd mdlm && uv sync && source .venv/bin/activate
+#
+# CUDA 커널 확장 (causal-conv1d, mamba-ssm, flash-attn)은 nvcc가 필요합니다.
+# GPU 계산 노드에서: ./scripts/install_cuda_extensions_uv.sh
+
+[project]
+name = "mdlm"
+version = "0.1.0"
+description = "Masked Diffusion Language Models"
+readme = "README.md"
+requires-python = "==3.9.*"
+dependencies = [
+  "torch==2.2.2",
+  "datasets==2.18.0",
+  "einops==0.7.0",
+  "fsspec==2024.2.0",
+  "git-lfs==1.6",
+  "h5py==3.10.0",
+  "hydra-core==1.3.2",
+  "ipdb==0.13.13",
+  "jupyter==1.0.0",
+  "lightning==2.2.1",
+  "notebook==7.1.1",
+  "nvitop==1.3.2",
+  "omegaconf==2.3.0",
+  "packaging==23.2",
+  "pandas==2.2.1",
+  "rich==13.7.1",
+  # Lightning 2.2 imports pkg_resources (removed in setuptools>=81)
+  "setuptools>=69.0.0,<81.0.0",
+  "seaborn==0.13.2",
+  "scikit-learn==1.4.0",
+  "timm==0.9.16",
+  "transformers==4.38.2",
+  "triton==2.2.0",
+  "wandb==0.13.5",
+]
+
+[tool.uv]
+package = false
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu121" }
