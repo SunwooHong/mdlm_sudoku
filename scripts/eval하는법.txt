@@ -1,0 +1,442 @@
+# 1M
+CKPT=/home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/temp_checkpoint/1M_nibi_best.ckpt \
+sbatch /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/scripts/eval_sudoku_1m.sbatch
+
+# 5M
+CKPT=/home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/temp_checkpoint/5M_nibi_best.ckpt \
+sbatch /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/scripts/eval_sudoku_5m.sbatch
+
+# 10M
+CKPT=/home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/temp_checkpoint/10M_nibi_best.ckpt \
+sbatch /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/scripts/eval_sudoku_10m.sbatch
+
+# 50M
+CKPT=/home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/temp_checkpoint/50M_nibi_best.ckpt \
+sbatch /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/scripts/eval_sudoku_50m.sbatch
+
+# 100M
+CKPT=/home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/temp_checkpoint/100M_nibi_best.ckpt \
+sbatch /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/scripts/eval_sudoku_100m.sbatch
+
+
+# =========================
+# Python으로 바로 실행
+# =========================
+
+# 공통: 먼저 레포 루트로 이동
+cd /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm
+
+# 1M
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/temp_checkpoint/1M_nibi_best.ckpt \
+  --model sudoku_1m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 449855 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_1M_nibi_infill_d4_test_n449855.json
+
+# 5M
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/temp_checkpoint/5M_nibi_best.ckpt \
+  --model sudoku_5m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 449855 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_5M_nibi_infill_d4_test_n449855.json
+
+# 10M
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/2026.04.23/220826/checkpoints/best.ckpt \
+  --model sudoku_10m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 512 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_10M_nibi_infill_d4_test_n449855.json
+
+# 50M
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/2026.04.23/222546/checkpoints/best-v1.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 512 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_50M_nibi_infill_d4_test_n449855.json
+
+# 100M
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/2026.04.23/222546/checkpoints/best.ckpt \
+  --model sudoku_100m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 512 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_100M_nibi_infill_d4_test_n449855.json
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-100m/2026.04.25/010917/checkpoints/best.ckpt \
+  --model sudoku_100m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 512 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_100M_9M_임시.json
+
+
+
+
+
+
+------------------3M 스도쿠 데이터-----------------
+<1M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/2026.04.23/210116/checkpoints/best.ckpt \
+  --model sudoku_1m \
+  --npy-root /home/hongsunw/sudoku_3m_eval_d0_3_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 512 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_1M_eval_3M스도쿠.json
+
+<5M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/2026.04.24/004033/checkpoints/best.ckpt \
+  --model sudoku_5m \
+  --npy-root /home/hongsunw/sudoku_3m_eval_d0_3_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 512 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_5M_eval_3M스도쿠.json
+
+<10M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/2026.04.23/220826/checkpoints/best.ckpt \
+  --model sudoku_10m \
+  --npy-root /home/hongsunw/sudoku_3m_eval_d0_3_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 512 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_10M_eval_3M스도쿠.json
+
+<50M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/2026.04.23/222546/checkpoints/best-v1.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/sudoku_3m_eval_d0_3_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 512 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_50M_eval_3M스도쿠.json
+
+<100M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/2026.04.23/222546/checkpoints/best.ckpt \
+  --model sudoku_100m \
+  --npy-root /home/hongsunw/sudoku_3m_eval_d0_3_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 512 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_100M_eval_3M스도쿠.json
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-100m/2026.04.25/010917/checkpoints/best.ckpt \
+  --model sudoku_100m \
+  --npy-root /home/hongsunw/sudoku_3m_eval_d0_3_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 512 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_100M_eval_3M스도쿠_임시.json
+
+
+0425
+------------------3M 스도쿠 데이터-----------------
+
+<1M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-1m/2026.04.25/004255/checkpoints/best.ckpt \
+  --model sudoku_1m \
+  --npy-root /home/hongsunw/sudoku_3m_eval_d0_1_500_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_1M_eval_3M스도쿠_new.json
+
+<5M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-5m/2026.04.25/004255/checkpoints/best.ckpt \
+  --model sudoku_5m \
+  --npy-root /home/hongsunw/sudoku_3m_eval_d0_1_500_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_5M_eval_3M스도쿠_new.json
+
+<10M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-10m/2026.04.25/004255/checkpoints/best.ckpt \
+  --model sudoku_10m \
+  --npy-root /home/hongsunw/sudoku_3m_eval_d0_1_500_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_10M_eval_3M스도쿠_new.json
+
+<50M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-50m/2026.04.25/005045/checkpoints/best.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/sudoku_3m_eval_d0_1_500_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_50M_eval_3M스도쿠_new.json
+
+<100M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-100m/2026.04.25/010917/checkpoints/best.ckpt \
+  --model sudoku_100m \
+  --npy-root /home/hongsunw/sudoku_3m_eval_d0_1_500_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_100M_eval_3M스도쿠_new.json
+
+
+
+------------------9M 스도쿠 데이터-----------------
+
+<1M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-1m/2026.04.25/004255/checkpoints/best.ckpt \
+  --model sudoku_1m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_1M_eval_9M스도쿠_new.json
+
+<5M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-5m/2026.04.25/004255/checkpoints/best.ckpt \
+  --model sudoku_5m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_5M_eval_9M스도쿠_new.json
+
+<10M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-10m/2026.04.25/004255/checkpoints/best.ckpt \
+  --model sudoku_10m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_10M_eval_9M스도쿠_new.json
+
+<50M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-50m/2026.04.25/005045/checkpoints/best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_50M_eval_9M스도쿠_new.json
+
+<100M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-100m/2026.04.25/010917/checkpoints/best.ckpt \
+  --model sudoku_100m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_100M_eval_9M스도쿠_new.json
+
+
+
+
+
+
+-----------oscar 적용 이후---------------
+<1M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-anchors/2026.04.26/123015/checkpoints/best.ckpt \
+  --model sudoku_1m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_1M_eval_9M스도쿠_oscar_lite.json
+
+
+<5M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/oscar_lite_outputs/sudoku_5m/20260426_134245/checkpoints/best.ckpt \
+  --model sudoku_5m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_5M_eval_9M스도쿠_oscar_lite.json
+
+<10M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/obrbit_kto_outputs/sudoku_10m/oscar_default/checkpoints/best.ckpt \
+  --model sudoku_10m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_10M_eval_9M스도쿠_oscar_lite.json
+
+
+<50M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/obrbit_kto_outputs/sudoku_50m/oscar_default/checkpoints/.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_50M_eval_9M스도쿠_oscar_lite.json
+
+
+<100M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-anchors/2026.04.26/123015/checkpoints/best.ckpt \
+  --model sudoku_100m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_100M_eval_9M스도쿠_oscar_lite.json
+
+
+
+
+
+
+
+
+----------3M----------
+<1M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/oscar_lite_outputs/sudoku_1m/20260426_134245/checkpoints/best.ckpt \
+  --model sudoku_1m \
+  --npy-root /home/hongsunw/sudoku_3m_eval_diff0_500_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_1M_eval_9M스도쿠_oscar_lite.json
+
+
+<5M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/oscar_lite_outputs/sudoku_5m/20260426_134245/checkpoints/last.ckpt \
+  --model sudoku_5m \
+  --npy-root /home/hongsunw/sudoku_3m_eval_diff0_500_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_5M_eval_9M스도쿠_oscar_lite.json
+
+<10M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/oscar_lite_outputs/sudoku_10m/20260426_134625/checkpoints/best.ckpt \
+  --model sudoku_10m \
+  --npy-root /home/hongsunw/sudoku_3m_eval_diff0_500_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_10M_eval_9M스도쿠_oscar_lite.json
+
+
+<50M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/oscar_lite_outputs/sudoku_50m/20260426_135012/checkpoints/best.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/sudoku_3m_eval_diff0_500_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_50M_eval_9M스도쿠_oscar_lite.json
+
+
+<100M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/oscar_lite_outputs/sudoku_100m/20260426_140824/checkpoints/best.ckpt \
+  --model sudoku_100m \
+  --npy-root /home/hongsunw/sudoku_3m_eval_diff0_500_npy \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_100M_eval_9M스도쿠_oscar_lite.json

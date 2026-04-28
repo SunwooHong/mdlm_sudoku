@@ -1,0 +1,27 @@
+# Add to configs/config.yaml
+# --------------------------
+mode: train  # train / sample_eval / ppl_eval / orbit_kto
+
+orbit_kto:
+  init_checkpoint: ""
+  num_transforms: 8
+  shuffle_transforms_each_refresh: false
+  sample_steps: 32
+  sampling_eps: 1.0e-5
+
+  examples_per_refresh: 2048
+  updates_per_refresh: 1000
+  max_steps: 10000
+  batch_size: 64
+
+  tau: 0.1
+  alpha_pos: 1.0
+  alpha_neg: 1.0
+  lambda_ac: 0.1
+
+  score_t_grid: [0.15, 0.35, 0.60, 0.90]
+  mc_samples_per_t: 1
+
+  log_every: 20
+  save_every: 500
+  output_dir: outputs/orbit_kto

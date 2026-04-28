@@ -7,7 +7,7 @@ defaults:
   - /noise: loglinear
   - /lr_scheduler: constant_warmup
 
-mode: train  # train / ppl_eval / sample_eval
+mode: train  # train / ppl_eval / sample_eval / orbit_kto / oscar
 diffusion: absorbing_state
 backbone: dit  # dit / dimamba / ar
 parameterization: subs  # subs / d3pm / sedd
@@ -99,3 +99,44 @@ checkpointing:
   # Note: `checkpoints` path should correspond to `checkpoint_every_n_steps.dirpath`
   resume_from_ckpt: true
   resume_ckpt_path: ${.save_dir}/checkpoints/last.ckpt
+
+# Orbit-KTO post-training (kept separate from base train path)
+orbit_kto:
+  init_checkpoint: ""
+  num_transforms: 8
+  shuffle_transforms_each_refresh: false
+  sample_steps: 32
+  sampling_eps: 1.0e-5
+
+  examples_per_refresh: 2048
+  updates_per_refresh: 1000
+  max_steps: 10000
+  batch_size: 64
+
+  tau: 0.1
+  alpha_pos: 1.0
+  alpha_neg: 1.0
+  lambda_ac: 0.1
+
+  score_t_grid: [0.15, 0.35, 0.60, 0.90]
+  mc_samples_per_t: 4
+  normalize_delta: true
+  kappa_min: null
+
+  log_every: 20
+  save_every: 2000
+  max_checkpoints_to_keep: 3
+  output_dir: ${mdlm_root:}/obrbit_kto_outputs
+
+# OSCAR-lite post-training (separate from base train path)
+oscar:
+  init_checkpoint: ""
+  num_transforms: 8
+  always_include_identity: true
+  t_grid: [0.15, 0.35, 0.60, 0.90]
+  lambda_eq: 1.0
+  lambda_prox: 0.05
+  lambda_vicreg: 0.0
+  vicreg_gamma: 1.0
+  vicreg_var_weight: 25.0
+  vicreg_cov_weight: 1.0

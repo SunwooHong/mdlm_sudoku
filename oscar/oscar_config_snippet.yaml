@@ -1,0 +1,14 @@
+# Add to configs/config.yaml
+mode: train  # train / sample_eval / ppl_eval / oscar
+
+oscar:
+  init_checkpoint: ""
+  num_transforms: 8
+  always_include_identity: true
+  t_grid: [0.15, 0.35, 0.60, 0.90]
+  lambda_eq: 1.0
+  lambda_prox: 0.05
+  lambda_vicreg: 0.0
+  vicreg_gamma: 1.0
+  vicreg_var_weight: 25.0
+  vicreg_cov_weight: 1.0

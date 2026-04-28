@@ -1,0 +1,17 @@
+*** Begin Patch
+*** Update File: main.py
+@@
+ import dataloader
+ import diffusion
++import oscar_orbit
+ import utils
+@@
+   if config.mode == 'sample_eval':
+     generate_samples(config, logger, tokenizer)
+   elif config.mode == 'ppl_eval':
+     _ppl_eval(config, logger, tokenizer)
++  elif config.mode == 'oscar':
++    oscar_orbit.train(config, logger, tokenizer)
+   else:
+     _train(config, logger, tokenizer)
+*** End Patch

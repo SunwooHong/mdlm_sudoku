@@ -1,0 +1,74 @@
+python main.py \
+  mode=orbit_kto \
+  data=sudoku9-anchors \
+  model=sudoku_1m \
+  backbone=dit \
+  parameterization=subs \
+  model.length=81 \
+  orbit_kto.init_checkpoint=/home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-1m/2026.04.25/004255/checkpoints/best.ckpt \
+  orbit_kto.max_steps=1000 \
+  orbit_kto.examples_per_refresh=1024 \
+  orbit_kto.updates_per_refresh=100 \
+  orbit_kto.save_every=500 \
+  orbit_kto.batch_size=32 \
+  optim.lr=1e-5 \
+  orbit_kto.output_dir=outputs/orbit_kto_sudoku1m
+
+python main.py \
+  mode=orbit_kto \
+  data=sudoku9-anchors \
+  model=sudoku_1m \
+  backbone=dit \
+  parameterization=subs \
+  model.length=81 \
+  orbit_kto.init_checkpoint=/home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-1m/2026.04.25/004255/checkpoints/best.ckpt \
+  optim.lr=1e-5 \
+  orbit_kto.max_steps=2000 \
+  orbit_kto.examples_per_refresh=1024 \
+  orbit_kto.updates_per_refresh=200 \
+  orbit_kto.lambda_ac=0.5 \
+  orbit_kto.sample_steps=128 \
+  orbit_kto.batch_size=32 \
+  orbit_kto.save_every=500 \
+  orbit_kto.output_dir=/home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/obrbit_kto_outputs/sudoku_1m/tau5p0
+
+
+python main.py \
+  mode=orbit_kto \
+  data=sudoku9-anchors \
+  model=sudoku_1m \
+  backbone=dit \
+  parameterization=subs \
+  model.length=81 \
+  orbit_kto.init_checkpoint=/home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-1m/2026.04.25/004255/checkpoints/best.ckpt \
+  optim.lr=1e-5 \
+  orbit_kto.sample_steps=128 \
+  orbit_kto.max_steps=5000 \
+  orbit_kto.examples_per_refresh=1024 \
+  orbit_kto.updates_per_refresh=200 \
+  orbit_kto.batch_size=32 \
+  orbit_kto.lambda_ac=0.3 \
+  orbit_kto.tau=10.0 \
+  orbit_kto.mc_samples_per_t=4 \
+  orbit_kto.normalize_delta=true \
+  orbit_kto.kappa_min=null \
+  orbit_kto.save_every=1000 \
+  orbit_kto.output_dir=/home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/obrbit_kto_outputs/sudoku_1m/tau5p0
+
+
+
+
+
+
+
+----------------oscar-------------
+python main.py \
+  mode=oscar \
+  model=sudoku_1m \
+  data=sudoku9-anchors \
+  eval.generate_samples=false \
+  oscar.init_checkpoint=/home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-1m/2026.04.25/004255/checkpoints/best.ckpt \
+  oscar.num_transforms=4 \
+  oscar.lambda_eq=1.0 \
+  oscar.lambda_prox=0.05 \
+  oscar.lambda_vicreg=0.0

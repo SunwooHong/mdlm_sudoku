@@ -1,3 +1,15 @@
+"""
+python main.py \
+  model=sudoku_1m \
+  data=sudoku9-solutions \
+  loader.num_workers=4 \
+  loader.pin_memory=true \
+  wandb.project=my-sudoku-mdlm \
+  wandb.name=run1_seed42_retry \
+  wandb.group=sudoku_v0 \
+  wandb.tags='[sudoku,sudoku_1m]'
+"""
+
 import os
 
 import fsspec
@@ -10,10 +22,15 @@ import torch
 
 import dataloader
 import diffusion
+import oscar
+import orbit_kto
 import utils
 
 omegaconf.OmegaConf.register_new_resolver(
   'cwd', os.getcwd)
+omegaconf.OmegaConf.register_new_resolver(
+  'mdlm_root',
+  lambda: os.path.dirname(os.path.abspath(__file__)))
 omegaconf.OmegaConf.register_new_resolver(
   'device_count', torch.cuda.device_count)
 omegaconf.OmegaConf.register_new_resolver(
@@ -197,6 +214,10 @@ def main(config):
     generate_samples(config, logger, tokenizer)
   elif config.mode == 'ppl_eval':
     _ppl_eval(config, logger, tokenizer)
+  elif config.mode == 'orbit_kto':
+    orbit_kto.train(config, logger, tokenizer)
+  elif config.mode == 'oscar':
+    oscar.train(config, logger, tokenizer)
   else:
     _train(config, logger, tokenizer)
 

@@ -1,0 +1,16 @@
+
+
+----------------oscar-------------
+python main.py \
+  mode=oscar \
+  model=sudoku_1m \
+  data=sudoku9-anchors \
+  eval.generate_samples=false \
+  oscar.init_checkpoint=/home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-1m/2026.04.25/004255/checkpoints/best.ckpt \
+  oscar.num_transforms=4 \
+  oscar.lambda_eq=1.0 \
+  oscar.lambda_prox=0.05 \
+  oscar.lambda_vicreg=0.0 \
+  trainer.max_steps=5000 \
+  trainer.val_check_interval=1000 \
+  callbacks.checkpoint_every_n_steps.every_n_train_steps=1000

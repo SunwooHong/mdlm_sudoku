@@ -1,0 +1,18 @@
+diff --git a/main.py b/main.py
+index 0000000..0000000 100644
+--- a/main.py
++++ b/main.py
+@@
+-import utils
++import utils
++import orbit_kto
+@@
+-  if config.mode == 'sample_eval':
++  if config.mode == 'sample_eval':
+     generate_samples(config, logger, tokenizer)
+   elif config.mode == 'ppl_eval':
+     _ppl_eval(config, logger, tokenizer)
++  elif config.mode == 'orbit_kto':
++    orbit_kto.train(config, logger, tokenizer)
+   else:
+     _train(config, logger, tokenizer)

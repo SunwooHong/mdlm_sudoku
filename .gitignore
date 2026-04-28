@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual env
+.venv/
+venv/
+ENV/
+
+# Jupyter / local
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Training / eval artifacts (do not push to GitHub)
+outputs/
+wandb/
+wandb_offline/
+watch_folder/
+results/
+*_outputs/
+obrbit_kto_outputs/
+oscar_lite_outputs/
+
+# Large datasets & checkpoints (code-only repo)
+dataset/
+*.npy
+*.npz
+*.ckpt
+*.pt
+*.pth
+*.bin
+
+# Hydra / logs inside cwd runs
+.hydra/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Accidental editor duplicates (keep repo clean)
+*copy*.py

@@ -1,0 +1,10 @@
+name: sudoku_50m
+type: ddit
+hidden_size: 512
+cond_dim: 128
+length: 81
+n_blocks: 14
+n_heads: 16
+scale_by_sigma: True
+dropout: 0.0
+tie_word_embeddings: False
