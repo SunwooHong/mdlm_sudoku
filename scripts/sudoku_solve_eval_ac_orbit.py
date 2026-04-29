@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Evaluate an MDLM Sudoku checkpoint with stochastic orbit metrics.
+"""Evaluate an MDLM Sudoku checkpoint with stochastic AC-orbit metrics.
 
 This script extends the original sudoku_solve_eval.py in three important ways:
 
@@ -9,9 +9,10 @@ This script extends the original sudoku_solve_eval.py in three important ways:
 3. It canonicalizes transformed predictions and reports marginal orbit divergence (MOD),
    a distributional equivariance diagnostic over target cells.
 
-The script remains backward compatible for one-sample orbit eval, but for stochastic
-MDLMs the recommended setting is K>=16 with temperature=1.0 or a validation-selected
-sampling temperature.
+The script remains backward compatible for full-puzzle infill eval, and adds
+Anchored Completion (AC) eval via precomputed target masks or solver traces. For
+stochastic MDLMs the recommended setting is K>=16 with temperature=1.0 or a
+validation-selected sampling temperature.
 """
 
 from __future__ import annotations
@@ -280,6 +281,171 @@ def _load_optional_target_masks(
   return np.asarray(np.load(path, mmap_mode='r')[:n], dtype=np.bool_).copy()
 
 
+
+
+def _load_optional_trace(
+    npy_root: Path,
+    split: str,
+    n: int,
+    explicit_path: str,
+) -> Optional[np.ndarray]:
+  """Load a solver trace array if available.
+
+  Expected shape is [N, L], where each row is an ordered list of Sudoku cell
+  positions in 0..80. Negative values are treated as padding. The trace may
+  contain givens; they will be filtered out when AC states are generated.
+  """
+  if explicit_path:
+    path = Path(explicit_path)
+    if not path.is_absolute():
+      path = MDLM_ROOT / path
+    if not path.exists():
+      raise FileNotFoundError(f'--ac-trace-npy not found: {path}')
+    return np.asarray(np.load(path, mmap_mode='r')[:n], dtype=np.int64).copy()
+
+  path = _find_split_file(
+    npy_root,
+    split,
+    candidates=(
+      '{split}_trace.npy',
+      '{split}_solver_trace.npy',
+      '{split}_solver_order.npy',
+      '{split}_order.npy',
+      '{split}_fill_order.npy',
+    ),
+  )
+  if path is None:
+    return None
+  print(f'[eval] loaded AC solver traces from {path}', file=sys.stderr)
+  return np.asarray(np.load(path, mmap_mode='r')[:n], dtype=np.int64).copy()
+
+
+def _ordered_unresolved_from_trace(trace_row: np.ndarray, anchor_row: np.ndarray) -> List[int]:
+  """Filter one trace row into a unique ordered list of non-anchor positions."""
+  out: List[int] = []
+  seen = set()
+  flat = np.asarray(trace_row).reshape(-1)
+  for raw in flat:
+    pos = int(raw)
+    if pos < 0 or pos >= 81:
+      continue
+    if bool(anchor_row[pos]):
+      continue
+    if pos in seen:
+      continue
+    seen.add(pos)
+    out.append(pos)
+  return out
+
+
+def _choose_ac_starts(
+    *,
+    num_unresolved: int,
+    k: int,
+    states_per_puzzle: int,
+    policy: str,
+    fixed_start: int,
+    rng: np.random.Generator,
+) -> List[int]:
+  """Choose AC target-window starts along a solver trace."""
+  if k <= 0:
+    raise ValueError('--ac-k must be positive')
+  max_start = int(num_unresolved - k)
+  if max_start < 0:
+    return []
+  m = max(int(states_per_puzzle), 1)
+  if policy == 'random':
+    return [int(rng.integers(0, max_start + 1)) for _ in range(m)]
+  if policy == 'fixed':
+    start = min(max(int(fixed_start), 0), max_start)
+    return [start for _ in range(m)]
+  if policy == 'early':
+    return [0 for _ in range(m)]
+  if policy == 'middle':
+    return [max_start // 2 for _ in range(m)]
+  if policy == 'late':
+    return [max_start for _ in range(m)]
+  if policy == 'linspace':
+    if m == 1:
+      return [max_start // 2]
+    return [int(round(x)) for x in np.linspace(0, max_start, num=m)]
+  raise ValueError(f'Unknown AC window policy: {policy}')
+
+
+def _build_ac_states_from_trace(
+    *,
+    solutions: np.ndarray,
+    givens: np.ndarray,
+    traces: np.ndarray,
+    ac_k: int,
+    states_per_puzzle: int,
+    window_policy: str,
+    fixed_start: int,
+    seed: int,
+    allow_short_trace: bool,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+  """Generate AC states from base puzzles and solver traces.
+
+  Returns:
+    ac_solutions: [M,81], copied full solutions.
+    ac_anchors: [M,81], givens plus all solver-trace cells before the window.
+    ac_targets: [M,81], exactly ac_k target cells unless short traces are skipped.
+    base_ids: [M], original base puzzle index.
+    starts: [M], start offset in the filtered non-anchor trace.
+  """
+  rng = np.random.default_rng(int(seed))
+  sol_out: List[np.ndarray] = []
+  anc_out: List[np.ndarray] = []
+  tgt_out: List[np.ndarray] = []
+  base_ids: List[int] = []
+  starts: List[int] = []
+  skipped = 0
+
+  n = solutions.shape[0]
+  for i in range(n):
+    order = _ordered_unresolved_from_trace(traces[i], givens[i])
+    if len(order) < ac_k:
+      skipped += 1
+      if allow_short_trace:
+        continue
+      raise ValueError(
+        f'Puzzle {i} has only {len(order)} unresolved trace positions, but --ac-k={ac_k}. '
+        'Use --ac-allow-short-trace to skip such puzzles, or provide a complete trace.')
+    for start in _choose_ac_starts(
+        num_unresolved=len(order),
+        k=ac_k,
+        states_per_puzzle=states_per_puzzle,
+        policy=window_policy,
+        fixed_start=fixed_start,
+        rng=rng):
+      anc = np.asarray(givens[i], dtype=np.bool_).copy()
+      tgt = np.zeros(81, dtype=np.bool_)
+      prefix = order[:start]
+      window = order[start:start + ac_k]
+      if prefix:
+        anc[np.asarray(prefix, dtype=np.int64)] = True
+      tgt[np.asarray(window, dtype=np.int64)] = True
+      # Safety: targets should not be clamped as anchors.
+      anc[tgt] = False
+      sol_out.append(np.asarray(solutions[i], dtype=np.int64).copy())
+      anc_out.append(anc)
+      tgt_out.append(tgt)
+      base_ids.append(i)
+      starts.append(start)
+
+  if not sol_out:
+    raise ValueError('No AC states were generated. Check --ac-k, traces, and anchors.')
+  if skipped:
+    print(f'[eval] skipped {skipped} puzzles with short traces', file=sys.stderr)
+
+  return (
+    np.stack(sol_out, axis=0).astype(np.int64),
+    np.stack(anc_out, axis=0).astype(np.bool_),
+    np.stack(tgt_out, axis=0).astype(np.bool_),
+    np.asarray(base_ids, dtype=np.int64),
+    np.asarray(starts, dtype=np.int64),
+  )
+
 def _choose_success_flags(
     *,
     success_metric: str,
@@ -347,6 +513,102 @@ def _score_prediction_batch(
 
 
 @torch.no_grad()
+def _sample_infill_with_unmask_probs(
+    *,
+    model: diffusion_mod.Diffusion,
+    x_init: torch.Tensor,
+    target_mask: torch.Tensor,
+    num_steps: int,
+    generator: Optional[torch.Generator],
+    mode: str,
+    target_only: bool,
+) -> Tuple[torch.Tensor, Optional[np.ndarray]]:
+  """Sample once and optionally capture per-cell vocab probs at unmask time.
+
+  mode:
+    - 'none': disable capture
+    - 'first': first reveal (mask->token) per cell
+    - 'final': last non-mask reveal/update per cell
+  """
+  if mode == 'none':
+    pred = model.restore_model_and_sample(num_steps, x_init=x_init, generator=generator)
+    return pred, None
+
+  if mode not in ('first', 'final'):
+    raise ValueError(f'Unknown unmask prob mode: {mode}')
+
+  device = x_init.device
+  bsz, length = x_init.shape
+  vocab_size = int(getattr(model, 'vocab_size', model.mask_index + 1))
+  mask_id = int(model.mask_index)
+  record_mask = target_mask.bool() if target_only else torch.ones_like(target_mask, dtype=torch.bool)
+  rec_probs = torch.full(
+    (bsz, length, vocab_size),
+    float('nan'),
+    device=device,
+    dtype=torch.float32)
+
+  def _record(x_prev: torch.Tensor, q_xs: torch.Tensor, sampled: torch.Tensor) -> None:
+    unmasked_now = (sampled != mask_id) & record_mask
+    if mode == 'first':
+      update = (x_prev == mask_id) & unmasked_now
+      rec_probs[update] = q_xs[update]
+    else:
+      rec_probs[unmasked_now] = q_xs[unmasked_now]
+
+  orig_ddpm_update = model._ddpm_update
+  orig_ddpm_caching_update = model._ddpm_caching_update
+
+  def _ddpm_update_record(x: torch.Tensor, t: torch.Tensor, dt: float, generator=None) -> torch.Tensor:
+    sigma_t, _ = model.noise(t)
+    sigma_s, _ = model.noise(t - dt)
+    if sigma_t.ndim > 1:
+      sigma_t = sigma_t.squeeze(-1)
+    if sigma_s.ndim > 1:
+      sigma_s = sigma_s.squeeze(-1)
+    move_chance_t = (1 - torch.exp(-sigma_t))[:, None, None]
+    move_chance_s = (1 - torch.exp(-sigma_s))[:, None, None]
+    log_p_x0 = model.forward(x, sigma_t)
+    q_xs = log_p_x0.exp() * (move_chance_t - move_chance_s)
+    q_xs[:, :, model.mask_index] = move_chance_s[:, :, 0]
+    sampled = diffusion_mod._sample_categorical(q_xs, generator=generator)
+    _record(x, q_xs, sampled)
+    copy_flag = (x != model.mask_index).to(x.dtype)
+    return copy_flag * x + (1 - copy_flag) * sampled
+
+  def _ddpm_caching_update_record(
+      x: torch.Tensor,
+      t: torch.Tensor,
+      dt: float,
+      p_x0=None,
+      generator=None) -> Tuple[torch.Tensor, torch.Tensor]:
+    sigma_t, _ = model.noise(t)
+    if t.ndim > 1:
+      t = t.squeeze(-1)
+    move_chance_t = t[:, None, None]
+    move_chance_s = (t - dt)[:, None, None]
+    if p_x0 is None:
+      p_x0 = model.forward(x, sigma_t).exp()
+    q_xs = p_x0 * (move_chance_t - move_chance_s)
+    q_xs[:, :, model.mask_index] = move_chance_s[:, :, 0]
+    sampled = diffusion_mod._sample_categorical(q_xs, generator=generator)
+    _record(x, q_xs, sampled)
+    copy_flag = (x != model.mask_index).to(x.dtype)
+    x_next = copy_flag * x + (1 - copy_flag) * sampled
+    return p_x0, x_next
+
+  model._ddpm_update = _ddpm_update_record
+  model._ddpm_caching_update = _ddpm_caching_update_record
+  try:
+    pred = model.restore_model_and_sample(num_steps, x_init=x_init, generator=generator)
+  finally:
+    model._ddpm_update = orig_ddpm_update
+    model._ddpm_caching_update = orig_ddpm_caching_update
+
+  return pred, rec_probs.detach().cpu().numpy().astype(np.float16)
+
+
+@torch.no_grad()
 def _sample_infill_arrays_with_scores(
     *,
     model: diffusion_mod.Diffusion,
@@ -358,7 +620,9 @@ def _sample_infill_arrays_with_scores(
     batch_size: int,
     success_metric: str,
     generator: Optional[torch.Generator] = None,
-) -> Tuple[Dict[str, Any], np.ndarray]:
+    unmask_prob_mode: str = 'none',
+    unmask_probs_target_only: bool = True,
+) -> Tuple[Dict[str, Any], np.ndarray, Optional[np.ndarray]]:
   """Sample once per example and return aggregate metrics plus predictions [N,81]."""
   n = solutions.shape[0]
   mask_id = model.mask_index
@@ -373,6 +637,10 @@ def _sample_infill_arrays_with_scores(
   target_cell_correct_total = 0
   target_cell_count_total = 0
   clue_cells_total = 0
+  unmask_prob_all = None
+  if unmask_prob_mode != 'none':
+    vocab_size = int(getattr(model, 'vocab_size', model.mask_index + 1))
+    unmask_prob_all = np.full((n, 81, vocab_size), np.nan, dtype=np.float16)
 
   for start in range(0, n, batch_size):
     end = min(start + batch_size, n)
@@ -382,10 +650,21 @@ def _sample_infill_arrays_with_scores(
 
     sol = torch.from_numpy(sol_np.copy()).to(device=device, dtype=torch.long)
     anchor = torch.from_numpy(anc_np.copy()).to(device=device, dtype=torch.bool)
+    tgt = torch.from_numpy(tgt_np.copy()).to(device=device, dtype=torch.bool)
     x_init = torch.where(anchor, sol, torch.full_like(sol, mask_id))
-    pred = model.restore_model_and_sample(num_steps, x_init=x_init, generator=generator)
+    pred, rec_probs = _sample_infill_with_unmask_probs(
+      model=model,
+      x_init=x_init,
+      target_mask=tgt,
+      num_steps=num_steps,
+      generator=generator,
+      mode=unmask_prob_mode,
+      target_only=unmask_probs_target_only,
+    )
     pred_cpu = pred.detach().cpu().numpy().astype(np.int16)
     pred_all[start:end] = pred_cpu
+    if rec_probs is not None and unmask_prob_all is not None:
+      unmask_prob_all[start:end] = rec_probs
 
     scores = _score_prediction_batch(
       pred=pred_cpu.astype(np.int64),
@@ -424,7 +703,7 @@ def _sample_infill_arrays_with_scores(
       'success': success_flags,
     },
   }
-  return metrics, pred_all
+  return metrics, pred_all, unmask_prob_all
 
 
 def _bootstrap_ci(values: np.ndarray, n_boot: int, seed: int) -> Tuple[float, float]:
@@ -526,6 +805,101 @@ def _compute_mod(
   return float(per_puzzle.mean()), per_puzzle
 
 
+
+@torch.no_grad()
+def _run_canonical_pseudo_orbit_control(
+    *,
+    model: diffusion_mod.Diffusion,
+    solutions: np.ndarray,
+    anchors: np.ndarray,
+    target_masks: np.ndarray,
+    device: torch.device,
+    num_steps: int,
+    batch_size: int,
+    samples_per_transform: int,
+    num_pseudo_transforms: int,
+    success_metric: str,
+    generator: Optional[torch.Generator] = None,
+    bootstrap_samples: int = 0,
+    seed: int = 0,
+    compute_mod: bool = True,
+    vocab_size: int = 10,
+) -> Dict[str, Any]:
+  """Canonical pseudo-orbit null for finite-K stochastic orbit metrics.
+
+  This samples the canonical layout G*K times, groups samples into G pseudo-transforms,
+  and computes the same Cap/Robust/SLS/MOD metrics as the real orbit. It estimates
+  how much apparent layout spread is expected from finite sampling and puzzle-level
+  stochasticity alone, without any layout transformation.
+  """
+  k = int(samples_per_transform)
+  g = int(num_pseudo_transforms)
+  if k <= 0 or g <= 0:
+    return {}
+
+  n = solutions.shape[0]
+  success = np.zeros((n, g, k), dtype=np.bool_)
+  exact = np.zeros((n, g, k), dtype=np.bool_)
+  target_exact = np.zeros((n, g, k), dtype=np.bool_)
+  valid = np.zeros((n, g, k), dtype=np.bool_)
+  clue_ok = np.zeros((n, g, k), dtype=np.bool_)
+  canonical_preds = None
+  if compute_mod:
+    canonical_preds = np.empty((n, g, k, 81), dtype=np.int16)
+
+  single_rates: List[float] = []
+  for pseudo_i in range(g):
+    for sample_i in range(k):
+      metrics, pred, _ = _sample_infill_arrays_with_scores(
+        model=model,
+        solutions=solutions,
+        anchors=anchors,
+        target_masks=target_masks,
+        device=device,
+        num_steps=num_steps,
+        batch_size=batch_size,
+        success_metric=success_metric,
+        generator=generator,
+      )
+      flags = metrics['flags']
+      success[:, pseudo_i, sample_i] = flags['success']
+      exact[:, pseudo_i, sample_i] = flags['exact']
+      target_exact[:, pseudo_i, sample_i] = flags['target_exact']
+      valid[:, pseudo_i, sample_i] = flags['valid']
+      clue_ok[:, pseudo_i, sample_i] = flags['clue_ok']
+      if canonical_preds is not None:
+        canonical_preds[:, pseudo_i, sample_i, :] = pred
+      single_rates.append(float(metrics['success_rate']))
+
+  summary = _summarize_stochastic_orbit(success, bootstrap_samples, seed)
+  # Rename pseudo-transform labels for clarity.
+  p_t = success.mean(axis=2)
+  summary['per_transform_success_rate'] = {
+    f'canonical_group_{i}': float(p_t[:, i].mean()) for i in range(g)
+  }
+
+  out: Dict[str, Any] = {
+    'num_pseudo_transforms': g,
+    'samples_per_pseudo_transform': k,
+    'total_canonical_samples_per_puzzle': g * k,
+    'success_metric': success_metric,
+    'single_sample_selected_success_rate': float(np.mean(single_rates)),
+    'stochastic_summary': summary,
+  }
+
+  if compute_mod and canonical_preds is not None:
+    mod_mean, mod_per_puzzle = _compute_mod(canonical_preds, target_masks, vocab_size=vocab_size)
+    lo, hi = _bootstrap_ci(mod_per_puzzle, bootstrap_samples, seed + 7)
+    out['pseudo_marginal_orbit_divergence'] = {
+      'mean': float(mod_mean),
+      'ci95_low': lo,
+      'ci95_high': hi,
+      'vocab_size': int(vocab_size),
+      'computed_over': 'canonical target_mask positions grouped into pseudo-orbits',
+    }
+
+  return out
+
 @torch.no_grad()
 def _run_canonical_control_k(
     *,
@@ -553,7 +927,7 @@ def _run_canonical_control_k(
   clue_rates: List[float] = []
 
   for sample_i in range(k):
-    metrics, _pred = _sample_infill_arrays_with_scores(
+    metrics, _pred, _ = _sample_infill_arrays_with_scores(
       model=model,
       solutions=solutions,
       anchors=anchors,
@@ -645,6 +1019,27 @@ def main() -> None:
     help='Optional explicit target-mask npy. If omitted, tries split_target_mask.npy; '
          'if unavailable, targets default to non-anchor cells.')
   p.add_argument(
+    '--eval-mode',
+    type=str,
+    choices=('full', 'ac'),
+    default='full',
+    help='full: legacy clue-only full-puzzle infill; ac: Anchored Completion target-window eval.')
+  p.add_argument(
+    '--ac-trace-npy',
+    type=str,
+    default='',
+    help='Optional solver trace npy for on-the-fly AC construction. Shape [N,L] with cell positions 0..80.')
+  p.add_argument('--ac-k', type=int, default=24, help='AC target-window size when --eval-mode=ac and traces are used.')
+  p.add_argument('--ac-states-per-puzzle', type=int, default=1, help='Number of AC states to sample per base puzzle from the trace.')
+  p.add_argument(
+    '--ac-window-policy',
+    type=str,
+    choices=('random', 'fixed', 'early', 'middle', 'late', 'linspace'),
+    default='random',
+    help='How to choose the AC window start along the filtered solver trace.')
+  p.add_argument('--ac-window-start', type=int, default=0, help='Window start for --ac-window-policy=fixed.')
+  p.add_argument('--ac-allow-short-trace', action='store_true', default=False, help='Skip puzzles whose trace has fewer than --ac-k unresolved cells.')
+  p.add_argument(
     '--split',
     type=str,
     choices=('train', 'valid', 'validation', 'test'),
@@ -702,6 +1097,18 @@ def main() -> None:
     default=0,
     help='If >0, run K independent samples on the canonical layout as sampling-variance control.')
   p.add_argument(
+    '--control-canonical-pseudo-orbit',
+    action='store_true',
+    default=False,
+    help='Run a canonical pseudo-orbit null: sample canonical layout num_transforms*K times, '
+         'group into num_transforms pseudo-transforms, and compute the same stochastic '
+         'orbit metrics. This estimates finite-K sampling-noise SLS/MOD.')
+  p.add_argument(
+    '--pseudo-baseline-groups',
+    type=int,
+    default=0,
+    help='Alias/extension for canonical pseudo-orbit null. If >0, run this many pseudo groups. Recommended: 8.')
+  p.add_argument(
     '--success-metric',
     type=str,
     choices=SUCCESS_METRICS,
@@ -723,16 +1130,27 @@ def main() -> None:
     default=1000,
     help='Bootstrap resamples over base puzzles for CI. Use 0 to disable.')
   p.add_argument(
-    '--pseudo-baseline-groups',
-    type=int,
-    default=0,
-    help='If >0, draw canonical pseudo-groups (each with K samples) for null baseline '
-         'of SLS/MOD; use 8 to mirror D4.')
-  p.add_argument(
     '--save-npz',
     action='store_true',
     default=False,
     help='Save flags and canonicalized predictions to output_json.with_suffix(.npz).')
+  p.add_argument(
+    '--save-unmask-probs',
+    type=str,
+    choices=('none', 'first', 'final'),
+    default='none',
+    help='Optionally save vocab distributions at unmask time into npz '
+         '(first reveal or final non-mask update).')
+  p.add_argument(
+    '--unmask-probs-target-only',
+    dest='unmask_probs_target_only',
+    action='store_true',
+    default=True,
+    help='When saving unmask probs, keep only target-mask cells (recommended).')
+  p.add_argument(
+    '--no-unmask-probs-target-only',
+    dest='unmask_probs_target_only',
+    action='store_false')
   p.add_argument('--output-json', type=str, default='')
   args = p.parse_args()
 
@@ -740,6 +1158,8 @@ def main() -> None:
     raise ValueError('--samples-per-transform must be positive')
   if args.control_canonical_k < 0:
     raise ValueError('--control-canonical-k must be >= 0')
+  if args.save_unmask_probs != 'none' and not args.save_npz:
+    raise ValueError('--save-unmask-probs requires --save-npz to persist outputs')
   if args.sample_top_k < 0:
     raise ValueError('--sample-top-k must be >= 0')
 
@@ -798,10 +1218,40 @@ def main() -> None:
     solutions = _safe_numpy_slice(ds.solutions, n, np.int64)
     anchors = _safe_numpy_slice(ds.anchors, n, np.bool_)
     target_masks = _load_optional_target_masks(npy_root, args.split, n, args.target_mask_npy)
-    target_mask_source = 'loaded'
-    if target_masks is None:
-      target_masks = ~anchors
-      target_mask_source = 'non_anchor_default'
+    target_mask_source = 'loaded_target_mask'
+    base_puzzle_ids = np.arange(n, dtype=np.int64)
+    ac_window_starts = np.full(n, -1, dtype=np.int64)
+
+    if args.eval_mode == 'ac':
+      if target_masks is not None:
+        # Precomputed AC dataset: ds.anchors should already be AC anchors and
+        # target_masks should specify the target window.
+        target_mask_source = 'precomputed_ac_target_mask'
+      else:
+        traces = _load_optional_trace(npy_root, args.split, n, args.ac_trace_npy)
+        if traces is None:
+          raise ValueError(
+            '--eval-mode=ac requires either --target-mask-npy / split_target_mask.npy '
+            'or --ac-trace-npy / split_trace.npy to construct AC states.')
+        base_solutions = solutions
+        base_givens = anchors
+        solutions, anchors, target_masks, base_puzzle_ids, ac_window_starts = _build_ac_states_from_trace(
+          solutions=base_solutions,
+          givens=base_givens,
+          traces=traces,
+          ac_k=int(args.ac_k),
+          states_per_puzzle=int(args.ac_states_per_puzzle),
+          window_policy=str(args.ac_window_policy),
+          fixed_start=int(args.ac_window_start),
+          seed=int(args.seed) + 101,
+          allow_short_trace=bool(args.ac_allow_short_trace),
+        )
+        n = int(solutions.shape[0])
+        target_mask_source = 'generated_from_solver_trace'
+    else:
+      if target_masks is None:
+        target_masks = ~anchors
+        target_mask_source = 'non_anchor_default'
 
     transform_indices = _build_transform_indices()
     num_t = len(TRANSFORMS)
@@ -817,6 +1267,19 @@ def main() -> None:
     canonical_preds = None
     if args.compute_mod or args.save_npz:
       canonical_preds = np.empty((n, num_t, k, 81), dtype=np.int16)
+    unmask_probs_orbit = None
+    unmask_target_index = None
+    if args.save_unmask_probs != 'none':
+      vocab_size = int(getattr(model, 'vocab_size', model.mask_index + 1))
+      if args.unmask_probs_target_only:
+        max_targets = int(target_masks.sum(axis=1).max())
+        unmask_target_index = np.full((n, max_targets), -1, dtype=np.int16)
+        for i in range(n):
+          idx_i = np.where(target_masks[i])[0].astype(np.int16)
+          unmask_target_index[i, :idx_i.shape[0]] = idx_i
+        unmask_probs_orbit = np.full((n, num_t, k, max_targets, vocab_size), np.nan, dtype=np.float16)
+      else:
+        unmask_probs_orbit = np.full((n, num_t, k, 81, vocab_size), np.nan, dtype=np.float16)
 
     transform_metrics: Dict[str, Any] = {}
     for t_i, name in enumerate(TRANSFORMS):
@@ -830,7 +1293,7 @@ def main() -> None:
 
       per_sample_metrics: List[Dict[str, float]] = []
       for sample_i in range(k):
-        sample_metrics, pred_t = _sample_infill_arrays_with_scores(
+        sample_metrics, pred_t, unmask_probs_t = _sample_infill_arrays_with_scores(
           model=model,
           solutions=t_sol,
           anchors=t_anchor,
@@ -840,6 +1303,8 @@ def main() -> None:
           batch_size=args.batch_size,
           success_metric=args.success_metric,
           generator=rng_gen,
+          unmask_prob_mode=args.save_unmask_probs,
+          unmask_probs_target_only=bool(args.unmask_probs_target_only),
         )
         flags = sample_metrics['flags']
         orbit_success[:, t_i, sample_i] = flags['success']
@@ -849,6 +1314,17 @@ def main() -> None:
         orbit_clue_ok[:, t_i, sample_i] = flags['clue_ok']
         if canonical_preds is not None:
           canonical_preds[:, t_i, sample_i, :] = _canonicalize_from_transform(pred_t, idx)
+        if unmask_probs_orbit is not None and unmask_probs_t is not None:
+          canonical_probs = np.full_like(unmask_probs_t, np.nan)
+          canonical_probs[:, idx, :] = unmask_probs_t
+          if unmask_target_index is None:
+            unmask_probs_orbit[:, t_i, sample_i, :, :] = canonical_probs
+          else:
+            for i in range(n):
+              pos = unmask_target_index[i]
+              valid = pos >= 0
+              if np.any(valid):
+                unmask_probs_orbit[i, t_i, sample_i, valid, :] = canonical_probs[i, pos[valid], :]
         per_sample_metrics.append({
           'exact_match_rate': float(sample_metrics['exact_match_rate']),
           'target_exact_rate': float(sample_metrics['target_exact_rate']),
@@ -886,10 +1362,20 @@ def main() -> None:
       'split': args.split,
       'npy_root': str(npy_root),
       'target_mask_source': target_mask_source,
+      'eval_mode': args.eval_mode,
       'n_puzzles': int(n),
+      'n_base_puzzles': int(len(np.unique(base_puzzle_ids))) if 'base_puzzle_ids' in locals() else int(n),
       'num_transforms': num_t,
       'samples_per_transform': k,
       'success_metric': args.success_metric,
+      'ac_config': {
+        'ac_k': int(args.ac_k),
+        'ac_states_per_puzzle': int(args.ac_states_per_puzzle),
+        'ac_window_policy': str(args.ac_window_policy),
+        'ac_window_start': int(args.ac_window_start),
+        'target_cells_mean': float(target_masks.sum(axis=1).mean()),
+        'anchor_cells_mean': float(anchors.sum(axis=1).mean()),
+      } if args.eval_mode == 'ac' else None,
       'transform_metrics': transform_metrics,
       'stochastic_orbit': stochastic_summary,
       'one_sample_orbit_control': {
@@ -908,6 +1394,10 @@ def main() -> None:
       'explicit_generator': args.explicit_generator,
       'generator_seed': gen_seed,
       'reset_generator_each_orbit_transform': args.reset_generator_each_orbit_transform,
+      'saved_unmask_probs': {
+        'mode': args.save_unmask_probs,
+        'target_only': bool(args.unmask_probs_target_only),
+      } if args.save_unmask_probs != 'none' else None,
     }
 
     if args.compute_mod:
@@ -922,75 +1412,6 @@ def main() -> None:
         'vocab_size': int(vocab_size),
         'computed_over': 'canonical target_mask positions',
       }
-    if args.pseudo_baseline_groups > 0:
-      g = int(args.pseudo_baseline_groups)
-      pseudo_success = np.zeros((n, g, k), dtype=np.bool_)
-      pseudo_preds = np.empty((n, g, k, 81), dtype=np.int16)
-      for g_i in range(g):
-        for sample_i in range(k):
-          sample_metrics, pred_c = _sample_infill_arrays_with_scores(
-            model=model,
-            solutions=solutions,
-            anchors=anchors,
-            target_masks=target_masks,
-            device=device,
-            num_steps=args.num_steps,
-            batch_size=args.batch_size,
-            success_metric=args.success_metric,
-            generator=rng_gen,
-          )
-          pseudo_success[:, g_i, sample_i] = sample_metrics['flags']['success']
-          pseudo_preds[:, g_i, sample_i, :] = pred_c
-
-      p_orbit = orbit_success.mean(axis=2)
-      orbit_sls_per_puzzle = p_orbit.max(axis=1) - p_orbit.min(axis=1)
-      p_pseudo = pseudo_success.mean(axis=2)
-      pseudo_sls_per_puzzle = p_pseudo.max(axis=1) - p_pseudo.min(axis=1)
-      excess_sls_per_puzzle = orbit_sls_per_puzzle - pseudo_sls_per_puzzle
-      pseudo_sls_lo, pseudo_sls_hi = _bootstrap_ci(
-        pseudo_sls_per_puzzle, int(args.bootstrap_samples), int(args.seed) + 37)
-      excess_sls_lo, excess_sls_hi = _bootstrap_ci(
-        excess_sls_per_puzzle, int(args.bootstrap_samples), int(args.seed) + 39)
-
-      pseudo_metrics: Dict[str, Any] = {
-        'groups': g,
-        'samples_per_group': k,
-        'pseudo_sls_k': {
-          'mean': float(pseudo_sls_per_puzzle.mean()),
-          'ci95_low': pseudo_sls_lo,
-          'ci95_high': pseudo_sls_hi,
-        },
-        'excess_sls_k': {
-          'mean': float(excess_sls_per_puzzle.mean()),
-          'ci95_low': excess_sls_lo,
-          'ci95_high': excess_sls_hi,
-        },
-      }
-      if args.compute_mod:
-        vocab_size = max(int(getattr(model, 'mask_index', 9)) + 1, 9)
-        pseudo_mod_mean, pseudo_mod_per_puzzle = _compute_mod(
-          pseudo_preds, target_masks, vocab_size=vocab_size)
-        orbit_mod_mean = float(metrics['marginal_orbit_divergence']['mean'])
-        if 'mod_per_puzzle' in locals():
-          orbit_mod_per_puzzle = mod_per_puzzle
-        else:
-          _, orbit_mod_per_puzzle = _compute_mod(canonical_preds, target_masks, vocab_size=vocab_size)
-        excess_mod_per_puzzle = orbit_mod_per_puzzle - pseudo_mod_per_puzzle
-        pseudo_mod_lo, pseudo_mod_hi = _bootstrap_ci(
-          pseudo_mod_per_puzzle, int(args.bootstrap_samples), int(args.seed) + 41)
-        excess_mod_lo, excess_mod_hi = _bootstrap_ci(
-          excess_mod_per_puzzle, int(args.bootstrap_samples), int(args.seed) + 43)
-        pseudo_metrics['pseudo_mod'] = {
-          'mean': float(pseudo_mod_mean),
-          'ci95_low': pseudo_mod_lo,
-          'ci95_high': pseudo_mod_hi,
-        }
-        pseudo_metrics['excess_mod'] = {
-          'mean': float(orbit_mod_mean - pseudo_mod_mean),
-          'ci95_low': excess_mod_lo,
-          'ci95_high': excess_mod_hi,
-        }
-      metrics['pseudo_baseline'] = pseudo_metrics
 
     if args.control_canonical_k > 0:
       metrics['canonical_control'] = _run_canonical_control_k(
@@ -1008,6 +1429,52 @@ def main() -> None:
         seed=int(args.seed) + 31,
       )
 
+    if args.control_canonical_pseudo_orbit or int(args.pseudo_baseline_groups) > 0:
+      vocab_size = max(int(getattr(model, 'mask_index', 9)) + 1, 9)
+      pseudo_groups = int(args.pseudo_baseline_groups) if int(args.pseudo_baseline_groups) > 0 else num_t
+      pseudo = _run_canonical_pseudo_orbit_control(
+        model=model,
+        solutions=solutions,
+        anchors=anchors,
+        target_masks=target_masks,
+        device=device,
+        num_steps=args.num_steps,
+        batch_size=args.batch_size,
+        samples_per_transform=k,
+        num_pseudo_transforms=pseudo_groups,
+        success_metric=args.success_metric,
+        generator=rng_gen,
+        bootstrap_samples=int(args.bootstrap_samples),
+        seed=int(args.seed) + 41,
+        compute_mod=bool(args.compute_mod),
+        vocab_size=vocab_size,
+      )
+      metrics['canonical_pseudo_orbit_control'] = pseudo
+      # Direct finite-K corrected diagnostics. Positive values mean the real orbit
+      # has more layout spread than the canonical pseudo-orbit null.
+      try:
+        metrics['finite_k_excess_over_pseudo_orbit'] = {
+          'sls_excess': (
+            metrics['stochastic_orbit']['stochastic_layout_sensitivity_rate']['mean']
+            - pseudo['stochastic_summary']['stochastic_layout_sensitivity_rate']['mean']
+          ),
+          'robust_excess': (
+            metrics['stochastic_orbit']['robust_min_transform_rate']['mean']
+            - pseudo['stochastic_summary']['robust_min_transform_rate']['mean']
+          ),
+          'capacity_excess': (
+            metrics['stochastic_orbit']['capacity_max_transform_rate']['mean']
+            - pseudo['stochastic_summary']['capacity_max_transform_rate']['mean']
+          ),
+        }
+        if 'marginal_orbit_divergence' in metrics and 'pseudo_marginal_orbit_divergence' in pseudo:
+          metrics['finite_k_excess_over_pseudo_orbit']['mod_excess'] = (
+            metrics['marginal_orbit_divergence']['mean']
+            - pseudo['pseudo_marginal_orbit_divergence']['mean']
+          )
+      except KeyError:
+        pass
+
     if args.save_npz and args.output_json:
       out_path = Path(args.output_json)
       npz_path = out_path.with_suffix('.npz')
@@ -1023,7 +1490,11 @@ def main() -> None:
         target_masks=target_masks,
         anchors=anchors,
         solutions=solutions,
+        base_puzzle_ids=base_puzzle_ids if 'base_puzzle_ids' in locals() else np.arange(n, dtype=np.int64),
+        ac_window_starts=ac_window_starts if 'ac_window_starts' in locals() else np.full(n, -1, dtype=np.int64),
         transforms=np.asarray(TRANSFORMS),
+        unmask_probs=unmask_probs_orbit if unmask_probs_orbit is not None else np.asarray([], dtype=np.float16),
+        unmask_target_index=unmask_target_index if unmask_target_index is not None else np.asarray([], dtype=np.int16),
       )
       metrics['npz_path'] = str(npz_path)
 

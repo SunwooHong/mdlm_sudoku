@@ -1,0 +1,22 @@
+python scripts/sudoku_solve_eval_ac_orbit.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/temp_nibi/50M_3m_only_best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_only_ac24_eval_npy \
+  --split test \
+  --task infill \
+  --eval-mode ac \
+  --target-mask-npy dataset/3m_only_ac24_eval_npy/test_target_mask.npy \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --temperature 1.0 \
+  --samples-per-transform 64 \
+  --control-canonical-k 64 \
+  --success-metric target_exact_and_clue \
+  --bootstrap-samples 1000 \
+  --save-npz \
+  --pseudo-baseline-groups 8 \
+  --save-unmask-probs first \
+  --unmask-probs-target-only \
+  --sample-top-p 0.8 \
+  --output-json results/eval_3m_only_50M_ac24_test_stochK16.json
