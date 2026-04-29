@@ -1,0 +1,9 @@
+train: sudoku-csv
+valid: sudoku-csv
+tokenizer_name_or_path: sudoku9
+cache_dir: ${mdlm_root:}/dataset/3m_9m
+train_split: pretraining
+valid_split: val
+test_split: test
+wrap: False
+streaming: False

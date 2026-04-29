@@ -378,7 +378,7 @@ python scripts/sudoku_solve_eval.py \
 
 
 
-----------3M----------
+----------3M easy----------
 <1M>
 python scripts/sudoku_solve_eval.py \
   --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/oscar_lite_outputs/sudoku_1m/20260426_134245/checkpoints/best.ckpt \
@@ -389,7 +389,7 @@ python scripts/sudoku_solve_eval.py \
   --max-puzzles 500 \
   --batch-size 64 \
   --num-steps 128 \
-  --output-json results/sudoku_1M_eval_9M스도쿠_oscar_lite.json
+  --output-json results/sudoku_1M_eval_3M_easy스도쿠_oscar_lite.json
 
 
 <5M>
@@ -402,7 +402,7 @@ python scripts/sudoku_solve_eval.py \
   --max-puzzles 500 \
   --batch-size 64 \
   --num-steps 128 \
-  --output-json results/sudoku_5M_eval_9M스도쿠_oscar_lite.json
+  --output-json results/sudoku_5M_eval_3M_easy스도쿠_oscar_lite.json
 
 <10M>
 python scripts/sudoku_solve_eval.py \
@@ -414,7 +414,7 @@ python scripts/sudoku_solve_eval.py \
   --max-puzzles 500 \
   --batch-size 64 \
   --num-steps 128 \
-  --output-json results/sudoku_10M_eval_9M스도쿠_oscar_lite.json
+  --output-json results/sudoku_10M_eval_3M_easy스도쿠_oscar_lite.json
 
 
 <50M>
@@ -427,7 +427,7 @@ python scripts/sudoku_solve_eval.py \
   --max-puzzles 500 \
   --batch-size 64 \
   --num-steps 128 \
-  --output-json results/sudoku_50M_eval_9M스도쿠_oscar_lite.json
+  --output-json results/sudoku_50M_eval_3M_easy스도쿠_oscar_lite.json
 
 
 <100M>
@@ -439,4 +439,47 @@ python scripts/sudoku_solve_eval.py \
   --max-puzzles 500 \
   --batch-size 64 \
   --num-steps 128 \
-  --output-json results/sudoku_100M_eval_9M스도쿠_oscar_lite.json
+  --output-json results/sudoku_100M_eval_3M_easy스도쿠_oscar_lite.json
+
+
+
+
+
+--------- oscar long posttraining -----------
+
+<1M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/oscar_lite_outputs/sudoku_1m/20260427_043045/checkpoints/best.ckpt \
+  --model sudoku_1m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_1M_10k학습_9M스도쿠_oscar_lite.json
+
+
+<5M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/oscar_lite_outputs/sudoku_5m/20260427_043045/checkpoints/last.ckpt \
+  --model sudoku_5m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_5M_10k학습_9M스도쿠_oscar_lite.json
+
+<10M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/oscar_lite_outputs/sudoku_10m/20260427_061200/checkpoints/best.ckpt \
+  --model sudoku_10m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_10M_10k학습_9M스도쿠_oscar_lite.json

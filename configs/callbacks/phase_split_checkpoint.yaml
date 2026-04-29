@@ -1,0 +1,6 @@
+phase_split_checkpoint:
+  _target_: phase_checkpoint.PhaseSplitCheckpoint
+  boundary_step: 100000
+  monitor: val/nll
+  mode: min
+  dirpath: ${checkpointing.save_dir}/checkpoints

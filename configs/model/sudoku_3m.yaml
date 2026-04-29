@@ -1,0 +1,10 @@
+name: sudoku_3m
+type: ddit
+hidden_size: 160
+cond_dim: 64
+length: 81
+n_blocks: 8
+n_heads: 5
+scale_by_sigma: True
+dropout: 0.0
+tie_word_embeddings: False

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -135,6 +136,51 @@ class SudokuNpyDataset(torch.utils.data.Dataset):
           'anchor_mask': anchor_mask,
       }
 
+    return {
+        'input_ids': input_ids,
+        'attention_mask': torch.ones(81, dtype=torch.long),
+    }
+
+
+class SudokuCsvDataset(torch.utils.data.Dataset):
+  """Sudoku dataset backed by split CSV files.
+
+  Expected columns include `solution`; this loader uses only solution tokens for
+  pretraining compatibility with existing Sudoku diffusion setup.
+  """
+
+  def __init__(self, root: Union[str, Path], split: str) -> None:
+    root = Path(root)
+    split = {
+        'validation': 'val',
+        'valid': 'val',
+        'val': 'val',
+        'train': 'pretraining',
+        'test': 'test',
+        'pretraining': 'pretraining',
+        'post_training': 'post_training',
+    }.get(split, split)
+    csv_path = root / f'{split}.csv'
+    if not csv_path.exists():
+      raise FileNotFoundError(f'Missing {csv_path}')
+
+    self.solutions: List[np.ndarray] = []
+    with csv_path.open('r', newline='', encoding='utf-8') as f:
+      reader = csv.DictReader(f)
+      for row in reader:
+        solution = str(row['solution']).strip()
+        if len(solution) != 81:
+          raise ValueError(f'Invalid solution length={len(solution)} in {csv_path}')
+        ids = [int(ch) - 1 for ch in solution]
+        if any(x < 0 or x > 8 for x in ids):
+          raise ValueError(f'Invalid Sudoku solution digits in {csv_path}')
+        self.solutions.append(np.asarray(ids, dtype=np.int64))
+
+  def __len__(self) -> int:
+    return len(self.solutions)
+
+  def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+    input_ids = torch.tensor(self.solutions[idx], dtype=torch.long)
     return {
         'input_ids': input_ids,
         'attention_mask': torch.ones(81, dtype=torch.long),

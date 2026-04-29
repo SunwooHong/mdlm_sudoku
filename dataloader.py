@@ -304,7 +304,8 @@ def _group_texts(examples, block_size, bos, eos):
 
 def get_dataset(
     dataset_name, tokenizer, wrap, mode, cache_dir,
-    block_size=1024, num_proc=len(os.sched_getaffinity(0)), streaming=False):
+    block_size=1024, num_proc=len(os.sched_getaffinity(0)), streaming=False,
+    split_name=None):
   if dataset_name in ['sudoku9-solutions', 'sudoku9-anchors']:
     if block_size != 81:
       raise ValueError(
@@ -314,6 +315,13 @@ def get_dataset(
       root=cache_dir,
       split=mode,
       use_anchors=use_anchors)
+  if dataset_name == 'sudoku-csv':
+    if block_size != 81:
+      raise ValueError(
+        f'Sudoku CSV requires model.length==81, got block_size={block_size}')
+    return sudoku_dataloader.SudokuCsvDataset(
+      root=cache_dir,
+      split=(split_name if split_name is not None else mode))
 
   if wrap:
     filename = f'{dataset_name}_{mode}_bs{block_size}_wrapped.dat'
@@ -564,7 +572,8 @@ def get_dataloaders(config, tokenizer, skip_train=False,
       mode='train',
       wrap=config.data.wrap,
       cache_dir=config.data.cache_dir,
-      block_size=config.model.length)
+      block_size=config.model.length,
+      split_name=config.data.get('train_split', None))
   
   if config.data.valid in ['text8', 'lm1b', 'ag_news']:
     validation_split = 'test'
@@ -580,7 +589,8 @@ def get_dataloaders(config, tokenizer, skip_train=False,
       mode=validation_split,
       cache_dir=config.data.cache_dir,
       block_size=config.model.length,
-      streaming=False)
+      streaming=False,
+      split_name=config.data.get('valid_split', None))
 
   if skip_train:
     train_loader = None

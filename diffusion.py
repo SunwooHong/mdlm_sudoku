@@ -21,10 +21,22 @@ import utils
 LOG2 = math.log(2)
 
 
-def _sample_categorical(categorical_probs):
+def _sample_categorical(
+    categorical_probs,
+    generator: typing.Optional[torch.Generator] = None):
+  """Gumbel-ratio categorical sample; optional RNG generator for reproducibility."""
+  if generator is None:
+    rand_src = torch.rand_like(categorical_probs)
+  else:
+    rand_src = torch.rand(
+      categorical_probs.shape,
+      device=categorical_probs.device,
+      dtype=categorical_probs.dtype,
+      layout=categorical_probs.layout,
+      generator=generator)
   gumbel_norm = (
     1e-10
-    - (torch.rand_like(categorical_probs) + 1e-10).log())
+    - (rand_src + 1e-10).log())
   return (categorical_probs / gumbel_norm).argmax(dim=-1)
 
 
@@ -602,7 +614,7 @@ class Diffusion(L.LightningModule):
     return self.mask_index * torch.ones(
       * batch_dims, dtype=torch.int64)
 
-  def _ddpm_caching_update(self, x, t, dt, p_x0=None):
+  def _ddpm_caching_update(self, x, t, dt, p_x0=None, generator=None):
     assert self.config.noise.type == 'loglinear'
     sigma_t, _ = self.noise(t)
     if t.ndim > 1:
@@ -617,12 +629,12 @@ class Diffusion(L.LightningModule):
     assert move_chance_t.ndim == p_x0.ndim
     q_xs = p_x0 * (move_chance_t - move_chance_s)
     q_xs[:, :, self.mask_index] = move_chance_s[:, :, 0]
-    _x = _sample_categorical(q_xs)
+    _x = _sample_categorical(q_xs, generator=generator)
     
     copy_flag = (x != self.mask_index).to(x.dtype)
     return p_x0, copy_flag * x + (1 - copy_flag) * _x
 
-  def _ddpm_update(self, x, t, dt):
+  def _ddpm_update(self, x, t, dt, generator=None):
     sigma_t, _ = self.noise(t)
     sigma_s, _ = self.noise(t - dt)
     if sigma_t.ndim > 1:
@@ -644,7 +656,7 @@ class Diffusion(L.LightningModule):
     q_xs = log_p_x0.exp() * (move_chance_t
                              - move_chance_s)
     q_xs[:, :, self.mask_index] = move_chance_s[:, :, 0]
-    _x = _sample_categorical(q_xs)
+    _x = _sample_categorical(q_xs, generator=generator)
 
     copy_flag = (x != self.mask_index).to(x.dtype)
     return copy_flag * x + (1 - copy_flag) * _x
@@ -668,7 +680,8 @@ class Diffusion(L.LightningModule):
     return x
 
   @torch.no_grad()
-  def _sample(self, num_steps=None, eps=1e-5, x_init=None):
+  def _sample(self, num_steps=None, eps=1e-5, x_init=None,
+              generator: typing.Optional[torch.Generator] = None):
     """Generate samples from the model."""
     batch_size_per_gpu = self.config.loader.eval_batch_size
     if self.parameterization == 'ar':
@@ -692,29 +705,31 @@ class Diffusion(L.LightningModule):
       t = timesteps[i] * torch.ones(
         x.shape[0], 1, device=self.device)
       if self.sampler == 'ddpm':
-        x = self._ddpm_update(x, t, dt)
+        x = self._ddpm_update(x, t, dt, generator=generator)
       elif self.sampler == 'ddpm_cache':
         p_x0_cache, x_next = self._ddpm_caching_update(
-          x, t, dt, p_x0=p_x0_cache)
+          x, t, dt, p_x0=p_x0_cache, generator=generator)
         if (not torch.allclose(x_next, x)
             or self.time_conditioning):
           # Disable caching
           p_x0_cache = None
         x = x_next
       else:
-        x = self._analytic_update(x, t, dt)
+        x = self._analytic_update(x, t, dt, generator=generator)
 
     if self.config.sampling.noise_removal:
       t = timesteps[-1] * torch.ones(x.shape[0], 1,
                                      device=self.device)
       if self.sampler == 'analytic':
-        x = self._denoiser_update(x, t)
+        x = self._denoiser_update(x, t, generator=generator)
       else:
         unet_conditioning = self.noise(t)[0]
         x = self.forward(x, unet_conditioning).argmax(dim=-1)
     return x
 
-  def restore_model_and_sample(self, num_steps, eps=1e-5, x_init=None):
+  def restore_model_and_sample(
+      self, num_steps, eps=1e-5, x_init=None,
+      generator: typing.Optional[torch.Generator] = None):
     """Generate samples from the model."""
     # Lightning auto-casting is not working in this method for some reason
     if self.ema:
@@ -726,7 +741,8 @@ class Diffusion(L.LightningModule):
         self.noise.parameters()))
     self.backbone.eval()
     self.noise.eval()
-    samples = self._sample(num_steps=num_steps, eps=eps, x_init=x_init)
+    samples = self._sample(
+      num_steps=num_steps, eps=eps, x_init=x_init, generator=generator)
     if self.ema:
       self.ema.restore(itertools.chain(
         self.backbone.parameters(),
@@ -787,22 +803,22 @@ class Diffusion(L.LightningModule):
     score[..., self.mask_index] += extra_const
     return score
 
-  def _analytic_update(self, x, t, step_size):
+  def _analytic_update(self, x, t, step_size, generator=None):
     curr_sigma, _ = self.noise(t)
     next_sigma, _ = self.noise(t - step_size)
     dsigma = curr_sigma - next_sigma
     score = self.get_score(x, curr_sigma)
     stag_score = self._staggered_score(score, dsigma)
     probs = stag_score * self._transp_transition(x, dsigma)
-    return _sample_categorical(probs)
+    return _sample_categorical(probs, generator=generator)
 
-  def _denoiser_update(self, x, t):
+  def _denoiser_update(self, x, t, generator=None):
     sigma, _ = self.noise(t)
     score = self.get_score(x, sigma)
     stag_score = self._staggered_score(score, sigma)
     probs = stag_score * self._transp_transition(x, sigma)
     probs[..., self.mask_index] = 0
-    samples = _sample_categorical(probs)
+    samples = _sample_categorical(probs, generator=generator)
     return samples
 
   def _transp_transition(self, i, sigma):

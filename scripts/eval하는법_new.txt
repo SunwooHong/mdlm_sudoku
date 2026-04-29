@@ -1,0 +1,99 @@
+---------------<3M only>---------------------
+  --temperature
+  --no-explicit-generator (전역 시드만)
+  --reset-generator-each-orbit-transform
+
+# 10M
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only/sudoku-10m/2026.04.28/061101/checkpoints/best.ckpt \
+  --model sudoku_10m \
+  --npy-root dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 1000 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/eval_3m_only_10M_test.json \
+  --control-canonical-k 8 \
+  --temperature 1.0 \
+  --reset-generator-each-orbit-transform
+
+
+# 50M
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only/sudoku-50m/2026.04.28/052903/checkpoints/best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 1000 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/eval_3m_only_50M_test.json \
+  --control-canonical-k 8 \
+  --temperature 1.0 \
+  --reset-generator-each-orbit-transform
+
+
+# 100M
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only/sudoku-100m/2026.04.28/061450/checkpoints/best.ckpt \
+  --model sudoku_100m \
+  --npy-root dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 1000 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/eval_3m_only_100M_test.json \
+  --control-canonical-k 8 \
+  --temperature 1.0
+
+
+
+-------------<3m_9m>-------------------
+
+
+# 10M
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m9m-mix/sudoku-10m/2026.04.28/061439/checkpoints/best.ckpt \
+  --model sudoku_10m \
+  --npy-root dataset/3m_9m_eval_npy_1000_seed42  \
+  --split test \
+  --task infill \
+  --max-puzzles 1000 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/eval_3m_9m_10M_test.json \
+  --control-canonical-k 8 \
+  --temperature 1.0
+
+
+# 50M
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m9m-mix/sudoku-50m/2026.04.28/053423/checkpoints/best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_9m_eval_npy_1000_seed42 \
+  --split test \
+  --task infill \
+  --max-puzzles 1000 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/eval_3m_9m_50M_test.json \
+  --control-canonical-k 8 \
+  --temperature 1.0
+
+
+# 100M
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m9m-mix/sudoku-100m/2026.04.28/061854/checkpoints/best.ckpt \
+  --model sudoku_100m \
+  --npy-root dataset/3m_9m_eval_npy_1000_seed42 \
+  --split test \
+  --task infill \
+  --max-puzzles 1000 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/eval_3m_9m_100M_test.json \
+  --control-canonical-k 8 \
+  --temperature 1.0
