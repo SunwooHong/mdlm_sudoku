@@ -1,0 +1,49 @@
+
+
+python posttrain/sudoku_posttrain_loc_equiv.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only/sudoku-50m/2026.05.02/164430/checkpoints/84-480000.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_posttrain_10k \
+  --valid-npy-root dataset/3m_only_val_npy \
+  --output-dir outputs/posttrain2/loc10k/50M/cosine/ \
+  --fair-method pair10k \
+  --pair-base-size 4 \
+  --loc-lambda 0.05 \
+  --loc-lambda-warmup-frac 0.1 \
+  --loc-distance cosine
+
+
+
+python posttrain/sudoku_posttrain_loc_equiv.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only/sudoku-50m/2026.05.02/164430/checkpoints/84-480000.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_posttrain_10k \
+  --valid-npy-root dataset/3m_only_val_npy \
+  --output-dir outputs/posttrain2/loc10k/50M/cosine/lambda0.1/pair4/warmup0.5 \
+  --fair-method pair10k \
+  --pair-base-size 4 \
+  --loc-lambda 0.1 \
+  --loc-lambda-warmup-frac 0.5 \
+  --loc-distance cosine
+
+
+
+
+
+-----------------------------LOC Projection------------------------------------------------
+
+python posttrain/sudoku_posttrain_loc_equiv.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only/sudoku-50m/2026.05.02/164430/checkpoints/84-480000.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_posttrain_10k \
+  --valid-npy-root dataset/3m_only_val_npy \
+  --output-dir outputs/posttrain2/loc10k/50M/cosine/proj/lambda0.1/warmup0.3 \
+  --fair-method pair10k \
+  --pair-base-size 4 \
+  --loc-lambda 0.1 \
+  --loc-lambda-warmup-frac 0.3 \
+  --loc-projection \
+  --loc-proj-dim 128 \
+  --loc-proj-hidden 0
+
+# best.ckpt / last.ckpt 에 model_state_dict 와 함께 loc_proj_state_dict 가 저장됩니다. 추론(eval)은 기존과 같이 backbone만 로드하면 됩니다.

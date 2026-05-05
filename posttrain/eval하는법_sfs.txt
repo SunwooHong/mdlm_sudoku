@@ -1,0 +1,121 @@
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+<<<<<<<<post train 5가지>>>>>>>>>>>
+<<<<<<<<간단 test Any / All / Exact 등등 >>>>>>>>>>>
+< 50M >
+
+2. repeat10k_x8epochs
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/posttrain/50M/fair_repeat10k_x8/best.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --output-json results/posttrain/easy_test/50M/2_repeat10k_8epochs/sudoku_posttrain2_repeat10k_8epochs_50M_eval_3M_only_500samples.json
+
+
+
+5. SoftOH10k
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/posttrain/50M/fair_softoh10k/best.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --output-json results/posttrain/easy_test/50M/5_softoh10k/sudoku_posttrain2_softoh10k_50M_eval_3M_only_500samples.json
+
+
+
+
+
+<<<<<<<<정확한 Test / MOD/ SLS 등 >>>>>>>>>>>
+< 50M >
+1. 80kx20epochs
+python scripts/sudoku_solve_eval_ac_orbit.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/posttrain/sfs/dense/sfs_50m_rm80k_x20_sharded_dense2/best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --eval-mode full \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --temperature 1.0 \
+  --samples-per-transform 64 \
+  --control-canonical-k 64 \
+  --success-metric exact \
+  --bootstrap-samples 1000 \
+  --save-npz \
+  --pseudo-baseline-groups 8 \
+  --save-unmask-probs first \
+  --unmask-probs-target-only \
+  --sample-top-p 0.8 \
+  --output-json results/posttrain/sfs/complex_test/50M/80kx20epochs/sudoku_sfs_dense_80k_20epochs_50M_eval_3M_only_500samples.json
+
+
+
+python scripts/sudoku_solve_eval_ac_orbit.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/posttrain/sfs/dense/sfs_50m_rm80k_x20_sharded_dense_weight_2/best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --eval-mode full \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --temperature 1.0 \
+  --samples-per-transform 64 \
+  --control-canonical-k 64 \
+  --success-metric exact \
+  --bootstrap-samples 1000 \
+  --save-npz \
+  --pseudo-baseline-groups 8 \
+  --save-unmask-probs first \
+  --unmask-probs-target-only \
+  --sample-top-p 0.8 \
+  --output-json results/posttrain/sfs/complex_test/50M/80kx20epochs/weight2.0/sudoku_sfs_dense_80k_20epochs_50M_eval_3M_only_500samples.json
+
+
+
+
+
+
+<SFS>
+
+python scripts/sudoku_solve_eval_ac_orbit.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/posttrain/sfs/dense/weight2.0/sfs_10m_rm10k_x160_sharded_dense/best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --eval-mode full \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --temperature 1.0 \
+  --samples-per-transform 64 \
+  --control-canonical-k 64 \
+  --success-metric exact \
+  --bootstrap-samples 1000 \
+  --save-npz \
+  --pseudo-baseline-groups 8 \
+  --save-unmask-probs first \
+  --unmask-probs-target-only \
+  --sample-top-p 0.8 \
+  --output-json results/posttrain/sfs_dense/complex_test/50M/10kx160epochs/weight2.0/sudoku_sfs_dense_10k_160epochs_50M_eval_3M_only_500samples.json

@@ -1,0 +1,227 @@
+# sudoku_posttrain_soft_oh.py — 공정 비교 실행 명령 정리
+
+- 스크립트: `posttrain/sudoku_posttrain_soft_oh.py` (리포 **루트**에서 실행)
+- 공정 ablation: **`--fair-method`** 한 개로 레시피·orbit·손실 조합 고정
+
+---
+
+## 0) 한 번만 맞춰 둘 변수
+
+```bash
+cd /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm
+
+CKPT="/home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only/sudoku-50m/2026.04.28/052903/checkpoints/best.ckpt"
+CKPT="/home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only/sudoku-50m/2026.05.02/164430/checkpoints/84-480000.ckpt"
+MODEL="sudoku_50m"
+
+NPY_80k="dataset/3m_posttrain_80k"
+NPY_10k="dataset/3m_posttrain_10k"
+VAL_NPY="dataset/3m_only_val_npy"   
+# 디스크에는 valid가 2000행 있음
+```
+
+- **80k 학습**: `--npy-root "$NPY_80k"`
+- **10k 학습** (`repeat*` / `d4_*` / `softoh10k`): `--npy-root "$NPY_10k"`  
+  → 이 폴더의 `valid_*`는 비어 있으므로 **`--valid-npy-root "$VAL_NPY"` 필수**
+- **검증 행 수**: npy에는 **2k**가 들어 있지만, 학습 중 val에는 **`--valid-max-examples 500`** 을 쓰면 **앞에서부터 500행만** 로더에 넣는다 (고정 서브셋, 공정 비교에 유리). 전체 2k를 쓰려면 **`--valid-max-examples 0`** (기본값).
+- **`--eval-max-batches`**: 한 번의 eval 루프에서 **최대 몇 배치까지 순회할지** 상한일 뿐, “정확히 500퍼즐”과는 별개다. 500행만 쓸 때는 `--eval-max-batches 2` 정도면 충분.
+
+공통으로 자주 붙이는 옵션:
+
+```bash
+COMMON=(
+  --lr 1e-5
+  --max-steps 3000
+  --batch-size 512
+  --valid-max-examples 500
+  --eval-every 500
+  --eval-max-batches 2
+  --save-every 500
+  --best-checkpoint-key sft_loss
+)
+```
+
+첫 실행 전 점검: 명령 끝에 **`--sanity-check`** 추가.
+
+---
+
+## 1) `sft80k` — 80k 캐노니컬, 행마다 독립 random mask
+
+```bash
+cd /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm
+
+python posttrain/sudoku_posttrain_soft_oh.py \
+  --checkpoint "$CKPT" \
+  --model "$MODEL" \
+  --npy-root "$NPY_80k" \
+  --valid-npy-root "$VAL_NPY" \
+  --valid-max-examples 500 \
+  --fair-method sft80k \
+  --lr 1e-5 --max-steps 3000 --batch-size 512 \
+  --eval-every 500 --eval-max-batches 2 --save-every 500 \
+  --best-checkpoint-key sft_loss \
+  --output-dir outputs/posttrain/50M/fair_sft80k \
+  --best-checkpoint-key orbit_group_loss
+```
+
+---
+
+## 2) `repeat10k_x8` — 10k×8 반복(무변환), 행마다 독립 mask
+
+```bash
+cd /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm
+
+python posttrain/sudoku_posttrain_soft_oh.py \
+  --checkpoint "$CKPT" \
+  --model "$MODEL" \
+  --npy-root "$NPY_10k" \
+  --valid-npy-root "$VAL_NPY" \
+  --valid-max-examples 500 \
+  --fair-method repeat10k_x8 \
+  --lr 1e-5 --max-steps 3000 --batch-size 512 \
+  --eval-every 500 --eval-max-batches 2 --save-every 500 \
+  --best-checkpoint-key sft_loss \
+  --output-dir outputs/posttrain/50M/fair_repeat10k_x8 \
+  --best-checkpoint-key orbit_group_loss
+```
+
+---
+
+## 3) `d4_shuffle10k_indmask` — 10k×8 D4 행 shuffle 후, 행마다 독립 mask (3A)
+
+```bash
+cd /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm
+
+python posttrain/sudoku_posttrain_soft_oh.py \
+  --checkpoint "$CKPT" \
+  --model "$MODEL" \
+  --npy-root "$NPY_10k" \
+  --valid-npy-root "$VAL_NPY" \
+  --valid-max-examples 500 \
+  --fair-method d4_shuffle10k_indmask \
+  --lr 1e-5 --max-steps 3000 --batch-size 512 \
+  --eval-every 500 --eval-max-batches 2 --save-every 500 \
+  --best-checkpoint-key sft_loss \
+  --output-dir outputs/posttrain/50M/fair_d4_shuffle10k_indmask \
+  --best-checkpoint-key orbit_group_loss
+```
+
+---
+
+## 4) `d4_grouped_avg10k` — 궤도 8뷰 묶음 + 캐노니컬 corruption 공유, 손실 = μ
+
+(`orbit_batch_size`는 `batch_size`에 자동 맞춤.)
+
+```bash
+cd /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm
+
+python posttrain/sudoku_posttrain_soft_oh.py \
+  --checkpoint "$CKPT" \
+  --model "$MODEL" \
+  --npy-root "$NPY_10k" \
+  --valid-npy-root "$VAL_NPY" \
+  --valid-max-examples 500 \
+  --fair-method d4_grouped_avg10k \
+  --lr 1e-5 --max-steps 3000 --batch-size 512 \
+  --eval-every 500 --eval-max-batches 2 --save-every 500 \
+  --best-checkpoint-key sft_loss \
+  --output-dir outputs/posttrain/50M/fair_d4_grouped_avg10k \
+  --best-checkpoint-key orbit_group_loss
+```
+
+---
+
+## 5) `softoh10k` — 4와 동일 구성, SoftOH 손실
+
+```bash
+cd /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm
+
+python posttrain/sudoku_posttrain_soft_oh.py \
+  --checkpoint "$CKPT" \
+  --model "$MODEL" \
+  --npy-root "$NPY_10k" \
+  --valid-npy-root "$VAL_NPY" \
+  --valid-max-examples 500 \
+  --fair-method softoh10k \
+  --soft-oh-alpha 8.0 \
+  --soft-oh-lambda 1.0 \
+  --lambda-warmup-frac 0.1 \
+  --lr 1e-5 --max-steps 3000 --batch-size 512 \
+  --eval-every 500 --eval-max-batches 2 --save-every 500 \
+  --best-checkpoint-key sft_loss \
+  --output-dir outputs/posttrain/50M/fair_softoh10k/alpha_8_lambda_1_warmup_0.1 \
+  --best-checkpoint-key orbit_group_loss
+```
+
+---
+
+---
+## 6) d4_grouped_different_random
+
+(`orbit_batch_size`는 `batch_size`에 자동 맞춤.)
+
+```bash
+cd /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm
+
+python posttrain/sudoku_posttrain_soft_oh.py \
+  --checkpoint "$CKPT" \
+  --model "$MODEL" \
+  --npy-root "$NPY_10k" \
+  --valid-npy-root "$VAL_NPY" \
+  --valid-max-examples 500 \
+  --fair-method d4_grouped_different_random \
+  --lr 1e-5 --max-steps 3000 --batch-size 512 \
+  --eval-every 500 --eval-max-batches 2 --save-every 500 \
+  --best-checkpoint-key sft_loss \
+  --output-dir outputs/posttrain/50M/fair_d4_grouped_different_random \
+  --best-checkpoint-key orbit_group_loss
+```
+
+
+---
+## 7) SoftOH_d4_grouped_different_random
+
+(`orbit_batch_size`는 `batch_size`에 자동 맞춤.)
+
+```bash
+cd /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm
+
+python posttrain/sudoku_posttrain_soft_oh.py \
+  --checkpoint "$CKPT" \
+  --model "$MODEL" \
+  --npy-root "$NPY_10k" \
+  --valid-npy-root "$VAL_NPY" \
+  --valid-max-examples 500 \
+  --fair-method d4_grouped_different_random_softoh \
+  --soft-oh-alpha 2.0 \
+  --soft-oh-lambda 0.5 \
+  --lambda-warmup-frac 0.1 \
+  --lr 1e-5 --max-steps 3000 --batch-size 512 \
+  --eval-every 500 --eval-max-batches 2 --save-every 500 \
+  --best-checkpoint-key sft_loss \
+  --output-dir outputs/posttrain/50M/fair_softoh10k \
+  --best-checkpoint-key orbit_group_loss
+
+
+
+
+
+## orbit val 프록시로 `best.ckpt` 고르기 (선택)
+
+```bash
+  --best-checkpoint-key orbit_group_loss \
+  --eval-orbit-max-batches 32
+```
+
+---
+
+## 실험표에서 읽는 순서
+
+1. `repeat10k_x8` vs `d4_shuffle10k_indmask` — D4 노출( shuffle )  
+2. `d4_shuffle10k_indmask` vs `d4_grouped_avg10k` — 궤도 묶음 + shared corruption  
+3. `d4_grouped_avg10k` vs `softoh10k` — 목적식만 SoftOH  
+4. `sft80k` — 80k 다양성 기준선
+
+결과 메타: `--output-dir/posttrain_config.json` (`fair_method`, `masking_policy` 등).
+
+**최종 숫자:** `best.ckpt`만 믿지 말고 `step_*.ckpt`를 외부 orbit eval(macro-All, LSR)로 재선택 권장.

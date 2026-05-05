@@ -1,0 +1,68 @@
+
+
+
+
+
+
+
+
+
+python posttrain/sudoku_posttrain_sfs.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/temp_nibi/50M_3m_only_best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/rm_sfs_80k_x20_sharded \
+  --recipe sfs_80k \
+  --num-base-examples 1600000 \
+  --subset-mode first \
+  --use-target-masks \
+  --dense-sfs-loss \
+  --sfs-frontier-weight-mult 2.0 \
+  --batch-size 512 \
+  --max-steps 3000 \
+  --save-every 500 \
+  --eval-max-batches 2 \
+  --lr 1e-5 \
+  --best-checkpoint-key orbit_group_loss \
+  --orbit-batch-size 32 \
+  --eval-orbit-max-batches 16 \
+  --output-dir outputs/posttrain/sfs/dense/sfs_50m_rm80k_x20_sharded_dense_weight_2
+
+
+
+
+python posttrain/sudoku_posttrain_sfs.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only/sudoku-50m/2026.04.28/052903/checkpoints/best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/rm_sfs_80k_x20_sharded \
+  --recipe sfs_80k \
+  --num-base-examples 1600000 \
+  --subset-mode first \
+  --use-target-masks \
+  --dense-sfs-loss \
+  --sfs-frontier-weight-mult 5.0 \
+  --batch-size 512 \
+  --max-steps 3000 \
+  --save-every 500 \
+  --eval-max-batches 2 \
+  --lr 1e-5 \
+  --best-checkpoint-key orbit_group_loss \
+  --orbit-batch-size 32 \
+  --eval-orbit-max-batches 16 \
+  --output-dir outputs/posttrain/sfs/dense/sfs_50m_rm80k_x20_sharded_dense_weight_5
+
+
+
+python posttrain/sudoku_posttrain_sfs.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only/sudoku-50m/2026.04.28/052903/checkpoints/best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/rm_sfs_10k_x160_sharded \
+  --recipe sfs_80k \
+  --num-base-examples 1600000 \
+  --subset-mode first \
+  --use-target-masks \
+  --dense-sfs-loss \
+  --sfs-frontier-weight-mult 2.0 \
+  --batch-size 512 \
+  --max-steps 3000 \
+  --lr 1e-5 \
+  --output-dir outputs/posttrain/sfs/dense/weight2.0/sfs_10m_rm10k_x160_sharded_dense

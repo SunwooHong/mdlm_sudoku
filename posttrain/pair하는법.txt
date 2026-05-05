@@ -1,0 +1,51 @@
+cd /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm
+CKPT="/home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only/sudoku-50m/2026.05.02/164430/checkpoints/84-480000.ckpt"
+MODEL="sudoku_50m"
+NPY_10k="dataset/3m_posttrain_10k"
+VAL_NPY="dataset/3m_only_val_npy"
+
+python posttrain/sudoku_posttrain_pair_orbit.py \
+  --checkpoint "$CKPT" \
+  --model "$MODEL" \
+  --npy-root "$NPY_10k" \
+  --valid-npy-root "$VAL_NPY" \
+  --valid-max-examples 500 \
+  --fair-method pair10k \
+  --pair-base-size 4 \
+  --pair-gamma 1.0 \
+  --pair-gamma-warmup-frac 0.15 \
+  --pair-gamma-ramp-frac 0.10 \
+  --lr 1e-5 \
+  --max-steps 3000 \
+  --batch-size 512 \
+  --eval-every 500 \
+  --eval-max-batches 2 \
+  --eval-pair-max-batches 16 \
+  --save-every 500 \
+  --best-checkpoint-key pair_loss \
+  --output-dir outputs/posttrain2/pair/50M/pair10k_gamma1.0
+
+
+
+
+
+
+
+
+
+다른 baseline
+
+1) `sft80k` — 80k 캐노니컬, 행마다 독립 random mask
+
+python posttrain/sudoku_posttrain_soft_oh.py \
+  --checkpoint "$CKPT" \
+  --model "$MODEL" \
+  --npy-root "$NPY_80k" \
+  --valid-npy-root "$VAL_NPY" \
+  --valid-max-examples 500 \
+  --fair-method sft80k \
+  --lr 1e-5 --max-steps 3000 --batch-size 512 \
+  --eval-every 500 --eval-max-batches 2 --save-every 500 \
+  --best-checkpoint-key sft_loss \
+  --output-dir outputs/posttrain2/50M/fair_sft80k \
+  --best-checkpoint-key orbit_group_loss

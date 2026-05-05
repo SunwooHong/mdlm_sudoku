@@ -42,7 +42,7 @@ python scripts/sudoku_solve_eval.py \
   --npy-root dataset/3m_only_eval_npy \
   --split test \
   --task infill \
-  --max-puzzles 1000 \
+  --max-puzzles 1 \
   --batch-size 64 \
   --num-steps 128 \
   --output-json results/eval_3m_only_100M_test.json \
@@ -97,3 +97,121 @@ python scripts/sudoku_solve_eval.py \
   --output-json results/eval_3m_9m_100M_test.json \
   --control-canonical-k 8 \
   --temperature 1.0
+
+
+
+
+------------------------------Pair--------------------------------------
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only/sudoku-50m/2026.05.02/164430/checkpoints/best.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --output-json results/임시.json
+
+
+<pair>
+
+<baseline>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only/sudoku-50m/2026.05.02/164430/checkpoints/84-480000.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --output-json results/pair/50M/eval_baseline_50M_500samples.json
+
+<pair>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/posttrain/pair/50M/pair10k_gamma0.1/best.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --output-json results/pair/50M/gamma0.1/eval_pair_50M_500samples.json
+
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/posttrain2/pair/50M/pair10k_gamma1.0/best.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --output-json results/pair/50M/gamma1.0/eval_pair_50M_500samples.json
+
+
+
+<1. 80k SFT>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/posttrain2/50M/fair_sft80k/best.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --output-json results/pair/50M/sft80k/eval_sft80k_50M_500samples.json
+
+
+
+<4.d4 shuffle>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/posttrain2/50M/fair_d4_shuffle10k_indmask/best.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --output-json results/pair/50M/d4_shuffle/eval_d4_shuffle_50M_500samples.json
+
+
+
+
+
+
+---------LOC-------------
+<50M>
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/posttrain2/loc10k/50M/best.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --output-json results/loc/50M/lambda0.05_dist12/eval_loc_50M_500samples.json
+
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/posttrain2/loc10k/50M/cosine/proj/lambda0.3/warmup0.1/best.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --output-json results/proj/50M/lambda0.3/warmup0.1/eval_proj_50M_500samples.json
+
+  
+
+
+

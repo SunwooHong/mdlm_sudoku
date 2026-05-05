@@ -361,7 +361,7 @@ class DIT(nn.Module, huggingface_hub.PyTorchModelHubMixin):
     else:
       return  bias_dropout_add_scale_fused_inference
 
-  def forward(self, indices, sigma):
+  def forward(self, indices, sigma, return_pre_output_hidden: bool = False):
     x = self.vocab_embed(indices)
     c = F.silu(self.sigma_map(sigma))
 
@@ -370,6 +370,11 @@ class DIT(nn.Module, huggingface_hub.PyTorchModelHubMixin):
     with torch.cuda.amp.autocast(dtype=torch.bfloat16):
       for i in range(len(self.blocks)):
         x = self.blocks[i](x, rotary_cos_sin, c, seqlens=None)
+      if return_pre_output_hidden:
+        # Last transformer stream (before vocab head); fp32 for stable aux losses.
+        h_pre_output = x.float()
       x = self.output_layer(x, c)
 
+    if return_pre_output_hidden:
+      return x, h_pre_output
     return x

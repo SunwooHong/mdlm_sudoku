@@ -2,11 +2,12 @@
 #SBATCH --job-name=sudoku3m50m
 #SBATCH --output=watch_folder/%x_%j.out
 #SBATCH --error=watch_folder/%x_%j.err
-#SBATCH --account=def-bussmann
+#SBATCH --account=def-rahulgk
 #SBATCH --gres=gpu:h100:1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=192G
 #SBATCH --time=24:00:00
+#SBATCH --qos=high
 #SBATCH --open-mode=append
 
 set -euo pipefail

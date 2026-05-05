@@ -325,21 +325,39 @@ class Diffusion(L.LightningModule):
     assert sigma.ndim == 1, sigma.shape
     return sigma
 
-  def forward(self, x, sigma):
-    """Returns log score."""
+  def forward(self, x, sigma, return_backbone_hidden: bool = False):
+    """Returns log score.
+
+    If ``return_backbone_hidden`` is True and ``backbone=='dit'``, also returns
+    the pre-output transformer stream (before the final vocab layer) as fp32.
+    """
     sigma = self._process_sigma(sigma)
     with torch.cuda.amp.autocast(dtype=torch.float32):
-      logits = self.backbone(x, sigma)
-    
+      if return_backbone_hidden:
+        if self.config.backbone != 'dit':
+          raise ValueError(
+              'return_backbone_hidden=True requires config.backbone==\'dit\' '
+              f'(got {self.config.backbone!r}).')
+        logits_raw, h_pre_output = self.backbone(
+            x, sigma, return_pre_output_hidden=True)
+      else:
+        logits_raw = self.backbone(x, sigma)
+        h_pre_output = None
+
     if self.parameterization == 'subs':
-      return self._subs_parameterization(logits=logits,
-                                         xt=x)
+      logits = self._subs_parameterization(logits=logits_raw,
+                                           xt=x)
     elif self.parameterization == 'sedd':
-      return self._sedd_parameterization(logits=logits,
-                                         xt=x,
-                                         sigma=sigma)
+      logits = self._sedd_parameterization(logits=logits_raw,
+                                           xt=x,
+                                           sigma=sigma)
     elif self.parameterization == 'd3pm':
-      return self._d3pm_parameterization(logits=logits)
+      logits = self._d3pm_parameterization(logits=logits_raw)
+    else:
+      logits = logits_raw
+
+    if return_backbone_hidden:
+      return logits, h_pre_output
     return logits
 
   def _d3pm_loss(self, model_output, xt, x0, t):

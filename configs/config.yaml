@@ -5,7 +5,7 @@ defaults:
   - /model: small
   - /strategy: ddp
   - /noise: loglinear
-  - /lr_scheduler: constant_warmup
+  - /lr_scheduler: cosine_decay_warmup
 
 mode: train  # train / ppl_eval / sample_eval / orbit_kto / oscar
 diffusion: absorbing_state

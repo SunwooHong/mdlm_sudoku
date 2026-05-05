@@ -233,10 +233,10 @@ python scripts/sudoku_solve_eval.py \
   --npy-root /home/hongsunw/sudoku_3m_eval_d0_1_500_npy \
   --split test \
   --task infill \
-  --max-puzzles 500 \
+  --max-puzzles 3 \
   --batch-size 64 \
   --num-steps 128 \
-  --output-json results/sudoku_100M_eval_3M스도쿠_new.json
+  --output-json results/sudoku_100M_eval_3M스도쿠_temp.json
 
 
 

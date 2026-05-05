@@ -1,0 +1,543 @@
+---------------<3M only>---------------------
+  --temperature
+  --no-explicit-generator (전역 시드만)
+  --reset-generator-each-orbit-transform
+
+# 10M
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only/sudoku-10m/2026.04.28/061101/checkpoints/best.ckpt \
+  --model sudoku_10m \
+  --npy-root dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 1000 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/eval_3m_only_10M_test.json \
+  --control-canonical-k 8 \
+  --temperature 1.0 \
+  --reset-generator-each-orbit-transform
+
+
+# 50M
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only/sudoku-50m/2026.04.28/052903/checkpoints/best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 1000 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/eval_3m_only_50M_test.json \
+  --control-canonical-k 8 \
+  --temperature 1.0 \
+  --reset-generator-each-orbit-transform
+
+
+# 100M
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only/sudoku-100m/2026.04.28/061450/checkpoints/best.ckpt \
+  --model sudoku_100m \
+  --npy-root dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 1000 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/eval_3m_only_100M_test.json \
+  --control-canonical-k 8 \
+  --temperature 1.0
+
+
+
+-------------<3m_9m>-------------------
+
+
+# 10M
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m9m-mix/sudoku-10m/2026.04.28/061439/checkpoints/best.ckpt \
+  --model sudoku_10m \
+  --npy-root dataset/3m_9m_eval_npy_1000_seed42  \
+  --split test \
+  --task infill \
+  --max-puzzles 1000 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/eval_3m_9m_10M_test.json \
+  --control-canonical-k 8 \
+  --temperature 1.0
+
+
+# 50M
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m9m-mix/sudoku-50m/2026.04.28/053423/checkpoints/best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_9m_eval_npy_1000_seed42 \
+  --split test \
+  --task infill \
+  --max-puzzles 1000 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/eval_3m_9m_50M_test.json \
+  --control-canonical-k 8 \
+  --temperature 1.0
+
+
+# 100M
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku3m9m-mix/sudoku-100m/2026.04.28/061854/checkpoints/best.ckpt \
+  --model sudoku_100m \
+  --npy-root dataset/3m_9m_eval_npy_1000_seed42 \
+  --split test \
+  --task infill \
+  --max-puzzles 1000 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/eval_3m_9m_100M_test.json \
+  --control-canonical-k 8 \
+  --temperature 1.0
+
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/temp_nibi/100M_3m_only_47-540000.ckpt\
+  --model sudoku_100m \
+  --npy-root /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 3 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_100M_eval_3M스도쿠_임시로그냥.json
+
+
+  python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-100m/2026.04.25/010917/checkpoints/best.ckpt \
+  --model sudoku_100m \
+  --npy-root dataset/sudoku_9m_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 512 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/sudoku_100M_9M_임시.json
+
+
+
+
+
+
+<grokking>
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only-grokking/sudoku-1m/2026.05.01/000908/checkpoints/7192-820000.ckpt \
+  --model sudoku_1m \
+  --npy-root /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --output-json results/grokking/1M/sudoku_grokking_1M_eval_3M_only_1000samples.json
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only-grokking/sudoku-5m/2026.04.30/231457/checkpoints/1842-210000.ckpt \
+  --model sudoku_5m \
+  --npy-root /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --output-json results/grokking/1M/sudoku_grokking_5M_eval_3M_only_500samples.json
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only-grokking/sudoku-10m/2026.05.01/060942/checkpoints/7982-910000.ckpt\
+  --model sudoku_10m \
+  --npy-root /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/grokking/1M/sudoku_grokking_10M_eval_3M_only_500samples.json
+
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only-grokking/sudoku-50m/2026.05.01/050544/checkpoints/7894-900000.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --output-json results/grokking/1M/sudoku_grokking_50M_eval_3M_only_500samples.json
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only-grokking/sudoku-100m/2026.05.01/053756/checkpoints/5087-580000.ckpt \
+  --model sudoku_100m \
+  --npy-root /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 1000 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/grokking/1M/sudoku_grokking_100M_eval_3M_only_1000samples.json
+
+
+
+
+
+
+<SFS>
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/posttrain/sfs_50m_rm80k_x20_sharded/best.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/grokking/1M/sudoku_sfs_80k_20epoch_50M_eval_3M_only_500samples.json
+
+
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/posttrain/sfs_50m_rm80k_x20_sharded/step_3000.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/grokking/1M/sudoku_sfs_10k_160epoch_50M_eval_3M_only_500samples.json
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/posttrain/sfs_50m_rm10k_x160_sharded/best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/grokking/1M/sudoku_sfs_10k_160epoch_50M_eval_3M_only_500samples.json \
+  --control-canonical-k 8 \
+  --temperature 1.0 \
+  --reset-generator-each-orbit-transform
+
+
+
+
+<pretraining>
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only-grokking/sudoku-1m/2026.05.01/000908/checkpoints/later/best_later.ckpt \
+  --model sudoku_1m \
+  --npy-root /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/pretraining/1M/sudoku_pretraining_1M_eval_3M_only_1000samples.json
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only-grokking/sudoku-5m/2026.04.30/231457/checkpoints/11666-1330000.ckpt \
+  --model sudoku_5m \
+  --npy-root /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/pretraining/5M/sudoku_pretraining_5M_eval_3M_only_500samples.json
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only-grokking/sudoku-10m/2026.05.01/060942/checkpoints/7982-910000.ckpt\
+  --model sudoku_10m \
+  --npy-root /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/pretraining/10M/sudoku_pretraining_10M_eval_3M_only_500samples.json
+
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/sudoku3m-only-grokking/sudoku-50m/2026.05.01/050544/checkpoints/6842-780000.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/pretraining/50M/sudoku_pretraining_50M_eval_3M_only_500samples.json
+
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/sudoku-100m/2026.05.01/074337/checkpoints/best.ckpt \
+  --model sudoku_100m \
+  --npy-root /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 1000 \
+  --batch-size 64 \
+  --num-steps 128 \
+  --output-json results/pretraining/100M/sudoku_pretraining_100M_eval_3M_only_1000samples.json
+
+
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+<<<<<<<<post train 5가지>>>>>>>>>>>
+<<<<<<<<간단 test Any / All / Exact 등등 >>>>>>>>>>>
+< 50M >
+
+2. repeat10k_x8epochs
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/posttrain/50M/fair_repeat10k_x8/best.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --output-json results/posttrain/easy_test/50M/2_repeat10k_8epochs/sudoku_posttrain2_repeat10k_8epochs_50M_eval_3M_only_500samples.json
+
+
+
+5. SoftOH10k
+python scripts/sudoku_solve_eval.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/posttrain/50M/fair_softoh10k/best.ckpt \
+  --model sudoku_50m \
+  --npy-root /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --output-json results/posttrain/easy_test/50M/5_softoh10k/sudoku_posttrain2_softoh10k_50M_eval_3M_only_500samples.json
+
+
+
+
+
+<<<<<<<<정확한 Test / MOD/ SLS 등 >>>>>>>>>>>
+< 50M >
+0. baseline
+python scripts/sudoku_solve_eval_ac_orbit.py \
+  --checkpoint /home/hongsunw/projects/aip-rahulgk/hongsunw/mdlm/outputs/sudoku9-solutions/temp_nibi/50M_3m_only_best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --eval-mode full \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --temperature 1.0 \
+  --samples-per-transform 64 \
+  --control-canonical-k 64 \
+  --success-metric exact \
+  --bootstrap-samples 1000 \
+  --save-npz \
+  --pseudo-baseline-groups 8 \
+  --save-unmask-probs first \
+  --unmask-probs-target-only \
+  --sample-top-p 0.8 \
+  --output-json results/posttrain/complex_test/50M/0_baseline/sudoku_posttrain2_baseline_8epochs_50M_eval_3M_only_500samples.json
+
+1. 80k SFT
+python scripts/sudoku_solve_eval_ac_orbit.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/posttrain/50M/fair_sft80k/best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --eval-mode full \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --temperature 1.0 \
+  --samples-per-transform 64 \
+  --control-canonical-k 64 \
+  --success-metric exact \
+  --bootstrap-samples 1000 \
+  --save-npz \
+  --pseudo-baseline-groups 8 \
+  --save-unmask-probs first \
+  --unmask-probs-target-only \
+  --sample-top-p 0.8 \
+  --output-json results/posttrain/complex_test/50M/1_80k/sudoku_posttrain2_80k_50M_eval_3M_only_500samples.json
+
+2. repeat10k_x8epochs
+python scripts/sudoku_solve_eval_ac_orbit.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/posttrain/50M/fair_repeat10k_x8/best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --eval-mode full \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --temperature 1.0 \
+  --samples-per-transform 64 \
+  --control-canonical-k 64 \
+  --success-metric exact \
+  --bootstrap-samples 1000 \
+  --save-npz \
+  --pseudo-baseline-groups 8 \
+  --save-unmask-probs first \
+  --unmask-probs-target-only \
+  --sample-top-p 0.8 \
+  --output-json results/posttrain/complex_test/50M/2_repeat10k_8epochs/sudoku_posttrain2_repeat10k_8epochs_50M_eval_3M_only_500samples.json
+
+
+3. `d4_shuffle10k_indmask` 변환을 전체에서 shuffle
+python scripts/sudoku_solve_eval_ac_orbit.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/posttrain/50M/fair_d4_shuffle10k_indmask/best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --eval-mode full \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --temperature 1.0 \
+  --samples-per-transform 64 \
+  --control-canonical-k 64 \
+  --success-metric exact \
+  --bootstrap-samples 1000 \
+  --save-npz \
+  --pseudo-baseline-groups 8 \
+  --save-unmask-probs first \
+  --unmask-probs-target-only \
+  --sample-top-p 0.8 \
+  --output-json results/posttrain/complex_test/50M/3_d4_shuffle10k/sudoku_posttrain2_d4_shuffle10k_8epochs_50M_eval_3M_only_500samples.json
+
+
+
+4. d4_grouped_avg10k
+
+python scripts/sudoku_solve_eval_ac_orbit.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/posttrain/50M/fair_d4_grouped_avg10k/best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --eval-mode full \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --temperature 1.0 \
+  --samples-per-transform 64 \
+  --control-canonical-k 64 \
+  --success-metric exact \
+  --bootstrap-samples 1000 \
+  --save-npz \
+  --pseudo-baseline-groups 8 \
+  --save-unmask-probs first \
+  --unmask-probs-target-only \
+  --sample-top-p 0.8 \
+  --output-json results/posttrain/complex_test/50M/4_d4_grouped_avg10k/sudoku_posttrain2_d4_grouped_avg10k_8epochs_50M_eval_3M_only_500samples.json
+
+5. SoftOH10k
+python scripts/sudoku_solve_eval_ac_orbit.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/posttrain/50M/fair_softoh10k/best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --eval-mode full \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --temperature 1.0 \
+  --samples-per-transform 64 \
+  --control-canonical-k 64 \
+  --success-metric exact \
+  --bootstrap-samples 1000 \
+  --save-npz \
+  --pseudo-baseline-groups 8 \
+  --save-unmask-probs first \
+  --unmask-probs-target-only \
+  --sample-top-p 0.8 \
+  --output-json results/posttrain/complex_test/50M/5_softoh10k/sudoku_posttrain2_softoh10k_50M_eval_3M_only_500samples.json
+
+
+
+
+6. d4_grouped_different_random
+
+python scripts/sudoku_solve_eval_ac_orbit.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/posttrain/50M/fair_d4_grouped_different_random/best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --eval-mode full \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --temperature 1.0 \
+  --samples-per-transform 64 \
+  --control-canonical-k 64 \
+  --success-metric exact \
+  --bootstrap-samples 1000 \
+  --save-npz \
+  --pseudo-baseline-groups 8 \
+  --save-unmask-probs first \
+  --unmask-probs-target-only \
+  --sample-top-p 0.8 \
+  --output-json results/posttrain/complex_test/50M/6_d4_grouped_different_random/sudoku_posttrain2_d4_grouped_different_random50M_eval_3M_only_500samples.json
+
+
+
+
+<softOH10k>
+alpha 8
+lambda 1
+warmup 0.1
+
+python scripts/sudoku_solve_eval_ac_orbit.py \
+  --checkpoint /home/hongsunw/projects/def-rahulgk/hongsunw/mdlm/outputs/posttrain/50M/fair_softoh10k/alpha_8_lambda_1_warmup_0.1/best.ckpt \
+  --model sudoku_50m \
+  --npy-root dataset/3m_only_eval_npy \
+  --split test \
+  --task infill \
+  --eval-mode full \
+  --max-puzzles 500 \
+  --batch-size 512 \
+  --num-steps 128 \
+  --temperature 1.0 \
+  --samples-per-transform 64 \
+  --control-canonical-k 64 \
+  --success-metric exact \
+  --bootstrap-samples 1000 \
+  --save-npz \
+  --pseudo-baseline-groups 8 \
+  --save-unmask-probs first \
+  --unmask-probs-target-only \
+  --sample-top-p 0.8 \
+  --output-json results/posttrain/complex_test/50M/5_softoh10k/alpha_8_lambda_1_warmup_0.1/sudoku_posttrain2_softoh10k_50M_eval_3M_only_500samples.json
+
+
+

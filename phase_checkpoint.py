@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal, Optional
 
 import lightning as L
 import torch
@@ -39,7 +40,34 @@ class PhaseSplitCheckpoint(L.pytorch.callbacks.Callback):
       return cur < prev
     return cur > prev
 
-  def _save(self, trainer: L.Trainer, path: Path) -> None:
+  def _write_ckpt_meta(
+      self,
+      ckpt_path: Path,
+      trainer: L.Trainer,
+      *,
+      kind: str,
+      monitor_value: Optional[float] = None,
+  ) -> None:
+    """Small JSON sidecar next to the ckpt (filename ``*.ckpt.meta.json``)."""
+    meta: dict[str, Any] = {
+      'kind': kind,
+      'global_step': int(trainer.global_step),
+      'current_epoch': int(trainer.current_epoch),
+      'monitor': self.monitor,
+      'monitor_value': monitor_value,
+      'boundary_step': self.boundary_step,
+    }
+    meta_path = ckpt_path.with_name(ckpt_path.name + '.meta.json')
+    meta_path.write_text(json.dumps(meta, indent=2), encoding='utf-8')
+
+  def _save(
+      self,
+      trainer: L.Trainer,
+      path: Path,
+      *,
+      kind: str,
+      monitor_value: Optional[float] = None,
+  ) -> None:
     # During sanity validation, train dataloader is not initialized yet.
     # Diffusion.on_save_checkpoint expects train_dataloader.sampler, so skip.
     train_dl = getattr(trainer, 'train_dataloader', None)
@@ -47,6 +75,7 @@ class PhaseSplitCheckpoint(L.pytorch.callbacks.Callback):
       return
     path.parent.mkdir(parents=True, exist_ok=True)
     trainer.save_checkpoint(str(path))
+    self._write_ckpt_meta(path, trainer, kind=kind, monitor_value=monitor_value)
 
   def _get_metric(self, trainer: L.Trainer) -> float | None:
     value = trainer.callback_metrics.get(self.monitor)
@@ -67,11 +96,21 @@ class PhaseSplitCheckpoint(L.pytorch.callbacks.Callback):
     if step <= self.boundary_step:
       if self._is_better(metric, self.best_main):
         self.best_main = metric
-        self._save(trainer, self.main_dir / 'best.ckpt')
+        self._save(
+          trainer,
+          self.main_dir / 'best.ckpt',
+          kind='phase_split_main_best',
+          monitor_value=float(metric),
+        )
     else:
       if self._is_better(metric, self.best_later):
         self.best_later = metric
-        self._save(trainer, self.later_dir / 'best_later.ckpt')
+        self._save(
+          trainer,
+          self.later_dir / 'best_later.ckpt',
+          kind='phase_split_later_best',
+          monitor_value=float(metric),
+        )
 
   def on_train_batch_end(
       self,
@@ -83,14 +122,26 @@ class PhaseSplitCheckpoint(L.pytorch.callbacks.Callback):
     del pl_module, outputs, batch, batch_idx
     step = int(trainer.global_step)
     if not self._main_last_saved and step >= self.boundary_step:
-      self._save(trainer, self.main_dir / 'last.ckpt')
+      self._save(
+        trainer,
+        self.main_dir / 'last.ckpt',
+        kind='phase_split_main_last',
+      )
       self._main_last_saved = True
 
   def on_train_end(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
     del pl_module
     step = int(trainer.global_step)
     if step <= self.boundary_step and not self._main_last_saved:
-      self._save(trainer, self.main_dir / 'last.ckpt')
+      self._save(
+        trainer,
+        self.main_dir / 'last.ckpt',
+        kind='phase_split_main_last',
+      )
       self._main_last_saved = True
     if step > self.boundary_step:
-      self._save(trainer, self.later_dir / 'last_later.ckpt')
+      self._save(
+        trainer,
+        self.later_dir / 'last_later.ckpt',
+        kind='phase_split_later_last',
+      )

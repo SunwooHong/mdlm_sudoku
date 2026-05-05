@@ -174,3 +174,18 @@ python scripts/sudoku_posttrain_sft.py \
   --save-every 1000 \
   --output-dir outputs/posttrain/3m_only_50m/full_orbit_sft_10k_seed0
 ```
+
+
+## 5) `best.ckpt`가 몇 step에서 나온 건지 확인하기
+
+Hydra `checkpoint_monitor`는 파일명을 고정(`best.ckpt`)이라 이름만으로는 step을 알 수 없지만,
+Lightning이 저장한 `.ckpt` 안에는 **`global_step`** 이 들어 있습니다.
+
+```bash
+python scripts/inspect_checkpoint.py outputs/.../checkpoints/best.ckpt
+```
+
+`PhaseSplitCheckpoint`로 저장한 경우(예: `checkpoints/main/best.ckpt`)에는 같은 디렉터리에
+**`best.ckpt.meta.json`** 이 함께 생기며, 그 안에도 `global_step`과 모니터 값이 적혀 있습니다.
+
+이미 끝난 예전 런에는 `.meta.json`이 없을 수 있으니, 위 `inspect_checkpoint.py`로 확인하면 됩니다.
